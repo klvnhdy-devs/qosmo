@@ -20,13 +20,36 @@ const sla2tabel6 = a => {
 		}
 	}
 
-	(a => {
+	m.sla.tombolGantiTabel6 = (a => {
 		el({a:'div', b:a, c:'PACKETLOSS BBC', d:{class:'activeMenu', style:'font-size:1.7vmin;font-weight:bold;cursor: pointer;'}, e:{click:gantiTabel} })
 		el({a:'div', b:a, c:'PACKETLOSS NON BBC', d:{style:'cursor:pointer; font-size:1.7vmin; font-weight:bold;'}, e:{click:gantiTabel} })
 		el({a:'div', b:a, c:'LATENCY', d:{style:'cursor:pointer; font-size:1.7vmin; font-weight:bold;'}, e:{click:gantiTabel} })
 		el({a:'div', b:a, c:'JITTER', d:{style:'cursor:pointer; font-size:1.7vmin; font-weight:bold;'}, e:{click:gantiTabel} })
+		return a
 	})(el({a:'div', b:a, d:{style:'display:flex; gap: 1vw; align-items:center; height:3vh;'} }));
 	
+	m.sla.tombolGantiTabel6 = {
+		parent: m.sla.tombolGantiTabel6,
+		akses: [...m.sla.tombolGantiTabel6.children],
+		core: [
+			el({a:'div', c:'PACKETLOSS', d:{class:'activeMenu',style:'cursor:default; font-size:1.7vmin; font-weight:bold;'}, e:{click:a=>{
+				a.target.parentElement.querySelector('.activeMenu').classList.remove('activeMenu')
+				a.target.classList.add('activeMenu')
+				m.sla.tabel6UpdatePlBBC(m.sla.tabel6Data['cti']['pl'])
+			}} }),
+			el({a:'div', c:'LATENCY', d:{style:'cursor:default; font-size:1.7vmin; font-weight:bold;'}, e:{click:a=>{
+				a.target.parentElement.querySelector('.activeMenu').classList.remove('activeMenu')
+				a.target.classList.add('activeMenu')
+				m.sla.tabel6UpdatePlBBC(m.sla.tabel6Data['cti']['lat'])
+			}} }),
+			el({a:'div', c:'JITTER', d:{style:'cursor:default; font-size:1.7vmin; font-weight:bold;'}, e:{click:a=>{
+				a.target.parentElement.querySelector('.activeMenu').classList.remove('activeMenu')
+				a.target.classList.add('activeMenu')
+				m.sla.tabel6UpdatePlBBC(m.sla.tabel6Data['cti']['jitt'])
+			}} }),
+		]
+	};
+
 	(a => {
 		m.sla.tabel6 = a
 		el({a:'div', b:a, c:'Region'})
@@ -46,6 +69,7 @@ const sla2tabel6 = a => {
 		const b = a.reduce((a,b)=>a.find(a=>a==b.periode)?a:[...a,b.periode],[]).slice(-4)
 
 		b.forEach(b => { el({a:'div', b:m.sla.tabel6, c:bulan[parseInt(b.slice(5,7))-1] }) })
+		for (var i=b.length; i<4; i++) el({a:'div', b:m.sla.tabel6})
 
 		a.reduce((a,b)=>a.find(a=>a==b.region_tsel)?a:[...a,b.region_tsel],[]).forEach(c => {
 			const d = a.filter(a=>a.region_tsel==c)
@@ -62,6 +86,8 @@ const sla2tabel6 = a => {
 				} else
 					el({a:'div', b:m.sla.tabel6 });
 			})
+			
+			for (var i=b.length; i<4; i++) el({a:'div', b:m.sla.tabel6})
 		})
 
 	}
