@@ -28,7 +28,7 @@ const sla2 = a => {
 		sla2card1(el({a:'div', b:a}))
 		sla2tabel6(el({a:'div', b:a}))
 		el({a:'div', b:a, c:'Service Credit' })
-		el({a:'div', b:a})
+		sla2chart4(el({a:'div', b:a}))
 	})(el({a:'div', b:a, d:{id:'sla2card4' }}))
 	
 }

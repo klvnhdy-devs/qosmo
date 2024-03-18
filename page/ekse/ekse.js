@@ -851,6 +851,7 @@ const executive1 = a => {
 		['youtube', 'facebook', 'netflix', 'tiktok']. forEach((a,f) => {
 			(a => {
 				const b = parseFloat((a.find(a=>a.type=='global')||{avg_time:100}).avg_time)
+		console.log(b)
 				m.chart3.data.datasets[0].data[f] = b - 100
 				m.chart3.data.datasets[1].data[f] = (b - 100) - 100
 				
@@ -860,8 +861,7 @@ const executive1 = a => {
 			})(b.data.filter(b=>b.category==a));
 		})
 		m.chart3.update()
-		console.log(b)
-		
+
 	})
 	
 }
