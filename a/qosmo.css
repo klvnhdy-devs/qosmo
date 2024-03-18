@@ -1,0 +1,87 @@
+* {
+	font-family: 'Nunito';
+	box-sizing: border-box;
+	margin: 0;
+}
+body { overflow-x:hidden; background:#EFEFEF; }
+.hide1 { display:none; }
+.LoginInput {
+	background:rgba(255,255,255,0.7);
+	border: none;
+	border-bottom: 1px solid #c0c0c0;
+	border-radius:5px;
+	padding: 11px 29px;
+	font-size: 14px;
+}
+.LoginInput::placeholder { color: rgba(0,0,0,0); }
+.LoginInput::-ms-input-placeholder { color: rgba(0,0,0,0); }
+.LoginInput + span {
+	font-size: 14px;
+	position: absolute;
+	top: 29px;
+	left: 27px;
+	color: #505050;
+	pointer-events: none;
+	transition: top .5s, left .5s;
+}
+.LoginInput:focus + span, .LoginInput:not(:placeholder-shown) + span {
+	top: 0px;
+	left: 11px;
+	color: #313131;
+}
+#menu1 {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100vw;
+	height: 7vh;
+	background: white;
+	cursor: default;
+	font-size: 3vmin;
+	font-weight: bold;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0 1.5vw;
+}
+#menu1 img { height: 3vh; }
+#menu1 img:hover { transform: scale(1.1,1.1); }
+#menu1 > div {
+	color: #21A7A7;
+	display: flex;
+	gap: 1vw;
+}
+#menu1 > div:nth-child(2) { margin-left:-9vw; }
+
+#p1 {
+	position: fixed;
+	top: 7vh;
+	left: 0;
+	min-height: 92vh;
+	width:100vw;
+	display: grid;
+	grid-template-columns: repeat(8,1fr);
+	align-items: start;
+	gap: 1vmin;
+	padding: 1vmin;
+}
+.c1 {
+	background: white;
+	border-radius: 7px;
+	height: 100%;
+	display: flex;
+	padding: 0.5vmin;
+	align-items: center;
+	justify-content: center;
+}
+
+.c2 {
+	display: flex;
+	gap: 1vmin;
+	padding: 1vmin;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	align-content: space-around;
+}
+.c1c1 {
+}

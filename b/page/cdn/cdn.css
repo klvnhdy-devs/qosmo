@@ -1,0 +1,18 @@
+#cdn1map1 {
+	position: fixed;
+	top: 12.5vh;
+	left: 19vw;
+	width: 62vw;
+	height: 48vh;
+}
+#cdn1card1 {
+	border-radius: 2vmin;
+	box-shadow: 0 3px 37px 0 rgba(0,0,0,0.05);
+	display: flex;
+	padding: 0;
+	position: fixed;
+	top: 62vh;
+	left: 19vw;
+	width: 62vw;
+	height: 33vh;
+}

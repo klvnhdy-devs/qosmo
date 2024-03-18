@@ -1,0 +1,207 @@
+.hide1 { display:none; }
+
+.title1 {
+	font-weight: bold;
+	font-size: 2vh;
+	width: 100%;
+	height: 4vh;
+	display: flex;
+	align-items: center;
+	padding: 0 1vw;
+	border-top: 1px solid #D9D9D9;
+	border-bottom: 1px solid #D9D9D9;
+}
+.title2 {
+	font-weight: bold;
+	font-size: 1.7vh;
+	height: 4vh;
+	display: flex;
+	align-items: center;
+	padding: 1vh 0.5vw;
+}
+
+.slider-checkbox {
+	width: 0;
+	height: 0;
+	opacity: 0;
+}
+
+#ekse1card1, #ekse1card2, #ekse1card3, #ekse1card4, #ekse1card5, #ekse1card6 {
+	height: 40vh;
+	/*display: flex;*/
+	/*flex-direction: colum;*/
+	/*align-items: center;*/
+	/*justify-content: center;*/
+	padding: 0.5vh 0.5vw;
+}
+#ekse1card1, #ekse1card4 {
+	width: 45%;
+}
+#ekse1card2, #ekse1card5 {
+	width: 25%;
+	border-left: 1px solid #D9D9D9;
+	border-right: 1px solid #D9D9D9;
+}
+#ekse1card3, #ekse1card6 {
+	width: 30%;
+}
+#ekse1card1 > div:nth-child(2) {
+	position: fixed;
+	height: 3vh;
+	margin-top: -3.5vh;
+	display: flex;
+	gap: 0.3vw;
+	padding: 0.5vh;
+}
+#ekse1card1 > div:nth-child(2) > div:nth-child(even) {
+	font-size: 1.5vh;
+	margin-right: 1vw;
+}
+#ekse1card1 > div:nth-child(2) > div:nth-child(odd) {
+	border-radius: 5px;
+	width: 2vh;
+}
+#ekse1card1 > div:nth-child(2) > div:nth-child(1) { background: #999A9E; }
+#ekse1card1 > div:nth-child(2) > div:nth-child(3) { background: #D3AF3D; }
+#ekse1card1 > div:nth-child(2) > div:nth-child(5) { background: #D9D9D9; }
+#ekse1card1 > div:nth-child(2) > div:nth-child(7) { background: #B28E65; }
+
+#ekse1card1 > div:nth-child(3) {
+	background: rgba(0,0,0,0.9);
+	border-radius: 11px;
+	position: absolute;
+	margin-top: -40vh;
+	right: 55.1vw;
+	display: grid;
+	gap: 3px;
+	grid-template-columns: 1fr 1.5px 1fr;
+	padding: 1vh 1vw;
+}
+#ekse1card1 > div:nth-child(3) > div {
+	font-size: 1.7vmin;
+	font-weight: bold;
+	white-space: nowrap;
+}
+#ekse1card1 > div:nth-child(3) > div:nth-child(1) {
+	color: white;
+	font-size: 2.3vmin;
+	grid-column: 1/4;
+	text-align: center;
+}
+#ekse1card1 > div:nth-child(3) > div:nth-child(2) {
+	color: green;
+	text-align: right;
+}
+#ekse1card1 > div:nth-child(3) > div:nth-child(3) {
+	background: white;
+}
+#ekse1card1 > div:nth-child(3) > div:nth-child(4) {
+	color: red;
+}
+
+#slider1 {
+	position: absolute;
+	margin-top: -25vh;
+	margin-left: 24vw;
+}
+#slider1 > input:checked ~ .slider1:before {
+	content: 'CTI';
+	-webkit-transform: translateX(100%);
+	-ms-transform: translateX(100%);
+	transform: translateX(100%);
+}
+.slider1 {
+	background: #ccc;
+	border-radius: 7px;
+	cursor: pointer;
+	font-size: 1.3vmin;
+	font-weight: bold;
+	padding: 0.1vmin 0.7vmin;
+	display: flex;
+	gap: 1.3vmin;
+	position: absolute;
+	margin-top: -1.5vmin;
+	margin-left: 1vmin;
+}
+.slider1:before {
+	background: rgb(55,189,187);
+	border-radius: 7px;
+	color: white;
+	content:'4G';
+	cursor:pointer;
+	font-size: 1.3vmin;
+	font-weight: bold;
+	padding: 0.1vmin 0.7vmin;
+	position:absolute;
+	margin-left: -0.5vmin;
+	-webkit-transition: .4s;
+	transition: .4s;
+}
+
+.sla-tabel {
+	border-collapse: collapse;
+	width: 100%;
+	height: 9vh;
+}
+.sla-tabel td {
+	height: 100%;
+	padding: 1px;
+}
+.sla-tabel td:first-child {
+	font-size:1.5vh;
+	font-weight: bold;
+	height: 5.5vh;
+	padding-left: 1vw;
+}
+.sla-tabel td:not(:first-child) {
+	/*border:1px solid #D9D9D9;*/
+}
+.sla-tabel td > div {
+	height: 100%;
+	color: white;
+	border-radius: 5px;
+	display: grid;
+	grid-template-columns:1fr 1fr;
+	align-items: center;
+	gap: 0.1vw;
+	padding: 0 0.5vw;
+	font-size:1.2vh;
+}
+.sla-tabel td > div > div:first-child {
+	grid-column: 1 / 3;
+	font-weight: bold;
+}
+
+#ekse1card4 > div {
+	width: 97%;
+	height: 97%;
+	margin: auto;
+	padding:1vh 1vw 1vh 0.3vw;
+	display: grid;
+	grid-template-columns: auto repeat(6,1fr);
+	gap: 1px;
+}
+#ekse1card4 > div > div {
+	font-size: 2vh;
+	padding:0.3vh 0.3vw;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+}
+#ekse1card4 > div > div > div {
+	background: rgba(255, 255, 255, 0.3);
+	border-radius: 7px;
+	padding:0.5vh 0.5vw;
+}
+#ekse1card4 > div > div > div > div {
+	background: rgba(71, 127, 159, 1); /*#477F9F;*/
+	border-radius: 7px;
+	/*box-shadow: rgba(71, 127, 159, 0.17) 0px -23px 25px 0px inset, rgba(71, 127, 159, 0.15) 0px -36px 30px 0px inset, rgba(71, 127, 159, 0.1) 0px -79px 40px 0px inset, rgba(71, 127, 159, 0.09) 3px 3px 5px 1px, rgba(71, 127, 159, 0.09) 3px 3px 7px 3px, rgba(71, 127, 159, 0.09) 3px 3px 9px 5px;*/
+	box-shadow: rgba(71, 127, 159, 0.17) 0px -23px 25px 0px inset, rgba(71, 127, 159, 0.15) 0px -36px 30px 0px inset, rgba(71, 127, 159, 0.1) 0px -79px 40px 0px inset, rgba(71, 127, 159, 0.09) 3px 3px 5px 1px, rgba(71, 127, 159, 0.09) 3px 3px 7px 3px, rgba(71, 127, 159, 0.09) 3px 3px 9px 5px;
+	color: white;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding:0.5vh 0.5vw;
+}

@@ -1,0 +1,168 @@
+#sla2card0 {
+	position: fixed;
+	top: 12.5vh;
+	left: 2.7vw;
+	width: 96.5vw;
+	height: 85vh;
+	overflow-y: scroll;
+	scroll-snap-type: y mandatory;
+}
+
+#sla2card1 {
+	position: absolute;
+	top: 1vh;
+	left: 0;
+	width: 60vw;
+	height: 83vh;
+	display: flex;
+	flex-direction: column;
+	gap: 1vh;
+	padding: 0;
+	scroll-snap-align: start none;
+}
+#sla2card1 > div:nth-child(1) {
+	background: #932b21;
+	color: #ffff;
+	font-size: 3vmin;
+	font-weight: 800;
+	line-height: 3vmin;
+	padding: 1vh;
+	text-align: center;
+	text-shadow: 0 0 1px #151515;
+}
+#sla2card1 > div:nth-child(2) {
+	display: flex;
+	flex-direction: column;
+	gap: 3vh;
+	height: 77vh;
+	overflow-y: scroll;
+	scroll-snap-type: y mandatory;
+}
+#sla2card1 > div:nth-child(2) > div {
+	scroll-snap-align: start none;
+}
+#sla2card1 > div:nth-child(2) > div > div:nth-child(1) {
+	font-size: 2.5vmin;
+	font-weight: bold;
+	line-height: 2.5vmin;
+	margin-bottom: 0.5vh;
+	text-align: center;
+}
+
+#sla2card1 > div:nth-child(2) > div table, #sla2card1 > div:nth-child(2) > div td, #sla2card1 > div:nth-child(2) > div th {
+	border: 1px solid black;
+}
+
+#sla2card1 > div:nth-child(2) > div table {
+	border-collapse: collapse;
+	width: 100%;
+}
+
+#sla2card2 {
+	position: absolute;
+	top: 1vh;
+	left: 60.5vw;
+	width: 33vw;
+	height: 83vh;
+	display: flex;
+	flex-direction: column;
+	gap: 1vh;
+	padding: 0;
+}
+#sla2card2 > div:nth-child(1) {
+	background: #4f81bd;
+	color: #ffff;
+	font-size: 3vmin;
+	font-weight: 800;
+	line-height: 3vmin;
+	padding: 1vh;
+	text-align: center;
+	text-shadow: 0 0 1px #151515;
+}
+#sla2card2 > div:not(:nth-child(1)) {
+	height: 38vh;
+}
+#sla2card2 > div:not(:nth-child(1)) > div:nth-child(1) {
+	font-size: 2vmin;
+	font-weight: bold;
+	text-align: center;
+	padding: 1vh;
+}
+
+#sla2card3 {
+	position: absolute;
+	top: 86vh;
+	left: 0;
+	width: 56vw;
+	height: 83vh;
+	display: flex;
+	flex-direction: column;
+	gap: 1vh;
+	padding: 0;
+	scroll-snap-align: start none;
+}
+#sla2card3 > div:nth-child(1) {
+	background: #932b21;
+	color: #ffff;
+	font-size: 3vmin;
+	font-weight: 800;
+	line-height: 3vmin;
+	padding: 1vh;
+	text-align: center;
+	text-shadow: 0 0 1px #151515;
+}
+#sla2card3 > div:not(:nth-child(1)) {
+	border: 1px solid #909090;
+	border-radius: 1.5vmin;
+	height: 38vh;
+}
+
+#sla2card4 {
+	position: absolute;
+	top: 86vh;
+	left: 56.5vw;
+	width: 37vw;
+	height: 83vh;
+	background: blue;
+}
+
+.sla-tabel1 > tr > td:not(:first-child) {
+	text-align: center;
+}
+
+.sla-tabel2 {
+	display: grid;
+	grid-template-columns: repeat(12,auto);
+}
+
+.sla2card2-chart1 > div:not(:nth-child(2)) {
+	font-size: 2vmin;
+	padding: 1vh;
+	text-align: center;
+}
+.sla2card2-chart1 > div:nth-child(1) {
+	font-weight: bold;
+	text-align: center;
+}
+.sla-dropdown1 {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+}
+.sla-dropdown1 > div {
+	cursor: default;
+	background: white;
+	border-radius: 9px;
+	box-shadow: inset -1px -1px 3px rgba(0,0,0,0.1);
+	padding: 0.5vh 1vw;
+}
+.sla-dropdown1 > div:not(:nth-child(1)) {
+	display: none;
+}
+.sla-dropdown1:hover > div:not(:nth-child(1)) {
+	display: block;
+}
+.sla-dropdown1:hover > div:nth-child(1) {
+	display: none;
+}
+

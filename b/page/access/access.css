@@ -1,0 +1,106 @@
+#access1card1 {
+	display: flex;
+	flex-direction: column;
+	gap: 2vmin;
+	position: fixed;
+	top: 12.5vh;
+	left: 2.7vw;
+}
+#access1card1 > div:nth-child(1) {
+	display: flex;
+	gap: 1vw;
+}
+#access1card1 > div:nth-child(1) > div {
+	color: #9a9a9a;
+	font-size: 2vmin;
+	font-weight: bold;
+}
+#access1card1 > div:nth-child(1) > div.active {
+	color: #131313;
+}
+#access1card1 > div:nth-child(2) {
+	display: flex;
+}
+#access1card1 > div:nth-child(2) > div {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	height: 9.5vh;
+	width: 8.25vw;
+}
+#access1card1 > div:nth-child(2) > div:not(:first-child) {
+	border-left: 1px solid #9c9c9c;
+}
+#access1card1 > div:nth-child(2) > div > div:nth-child(1) {
+	color: #9a9a9a;
+	font-size: 2vmin;
+}
+#access1card1 > div:nth-child(2) > div > div:nth-child(2) {
+	color: #131313;
+	font-size: 4vmin;
+	font-weight: bold;
+}
+
+#access1card2 {
+	background: #ffffff;
+	border-radius: 2vmin;
+	box-shadow: 0 3px 37px 0 rgba(0,0,0,0.05);
+	display: flex;
+	flex-direction: column;
+	position: fixed;
+	top: 36.375vh;
+	left: 2.7vw;
+	width: 19vw;
+	height: 28.9vh;
+}
+#access1card2 > div:nth-child(1) {
+	font-size: 2vmin;
+	font-weight: bold;
+}
+#core1card2 > div:nth-child(2) {
+	display: flex;
+	gap: 1px;
+	margin: 1vmin 0 1.5vmin 0;
+}
+#core1card2 > div:nth-child(2) > div {
+	height: 1vmin;
+}
+#core1card2 > div:nth-child(2) > div:nth-child(1) {
+	background: #FD2D6C;
+	border-radius: 0.5vmin 0 0 0.5vmin;
+}
+#core1card2 > div:nth-child(2) > div:nth-child(2) {
+	background: #C9C9C9;
+	border-radius: 0 0.5vmin 0.5vmin 0;
+}
+
+#access1card3 {
+	background: #ffffff;
+	border-radius: 2vmin;
+	box-shadow: 0 3px 37px 0 rgba(0,0,0,0.05);
+	display: flex;
+	flex-direction: column;
+	position: fixed;
+	top: 67.3vh;
+	left: 2.7vw;
+	width: 19vw;
+	height: 28.9vh;
+}
+#access1card4, #access1card5, #access1card6 {
+	border-radius: 2vmin;
+	box-shadow: 0 3px 37px 0 rgba(0,0,0,0.05);
+	display: flex;
+	flex-direction: column;
+	position: fixed;
+	left: 23vw;
+	top: 64.375vh;
+	width: 22.9vw;
+	height: 33vh;
+}
+#access1card5 {
+	left: 46.875vw;
+}
+#access1card6 {
+	left: 70.7vw;
+}
