@@ -56,6 +56,7 @@ addEventListener('load', () => {
 		else if (b.page == 'sla') sla2(document.body);
 		else if (b.page == 'cdn') cdn1(document.body);
 		else if (b.page == 'executive') executive1(document.body);
+		else if (b.page == 'order') order(document.body);
 		else executive1(document.body);
 		
 	} else executive1(document.body);
