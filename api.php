@@ -128,6 +128,77 @@ if (strtoupper($_SERVER['REQUEST_METHOD']) === 'GET') {
             }
             break;
 
+        case 'overview-trend-latency-weekly':
+            $conn_res = connect_dbtelkomtwamp();
+            if (!$conn_res->success) {
+                echo json_encode(['status' => 500, 'msg' => $conn_res->msg]);
+            } else {
+                $db_twamp = $conn_res->conn;
+                $cores = [];
+                $periods = [];
+
+                // weekly core
+                $q = "select yearweek(date) yearweek,
+                    avg(packetloss) avg_pl,avg(latency/1000) avg_lat,avg(jitter/100) avg_jitt from ci_bk.brix_cti
+                             where date >= date_sub(now(), interval 12 week) group by 1 order by 1";
+                $q = $db_twamp->query($q);
+
+                while ($b = $q->fetch_assoc()) {
+                    $periods[$b['yearweek']] = $b['yearweek'];
+                    $cores[$b['yearweek']]['vals'] = $b['avg_pl'] . "|" . $b['avg_lat'] . "|" . $b['avg_jitt'];
+                }
+                $q->free_result();
+
+
+                // access
+                $q = "select yearweek(tanggal) yearweek,avg(packetloss) avg_pl,avg(latency) avg_lat, avg(jitter) avg_jitt
+                from ci_twamp.twamp_4g_weekly where tanggal > date_format(date_sub(now(), interval 12 week),'%Y-%m-01')
+                group by 1 order by 1";
+
+
+                $q = $db_twamp->query($q);
+                $access = [];
+                while ($b = $q->fetch_assoc()) {
+                    $periods[$b['yearweek']] = $b['yearweek'];
+                    $access[$b['yearweek']]['vals'] = $b['avg_pl'] . "|" . $b['avg_lat'] . "|" . $b['avg_jitt'];
+                }
+                $q->free_result();
+                $db_twamp->close();
+
+                // CE
+                $conn_res = connect_dbtutela();
+                if (!$conn_res->success) {
+                    echo json_encode(['status' => 500, 'msg' => 'cannot connect to DB']);
+                } else {
+                    $db = $conn_res->conn;
+                    $q = "select yearweek,avg(avg_packetloss) avg_pl,avg(avg_latency) avg_lat, avg(avg_jitter) avg_jitt
+                    from production.report.tutela_mobile_weekly_nation where date_start >= to_char(now() - interval '12 week','YYYY-MM-01')::date
+                    group by 1 order by 1";
+                    $result = pg_query($db, $q);
+
+                    $ce = [];
+                    while ($b = pg_fetch_assoc($result)) {
+                        $periods[$b['yearweek']] = $b['yearweek'];
+                        $ce[$b['yearweek']]['vals'] = $b['avg_pl'] . "|" . $b['avg_lat'] . "|" . $b['avg_jitt'];
+                    }
+                    pg_free_result($result);
+                    pg_close($db);
+
+                    $data = [];
+                    $i = 0;
+                    foreach ($periods as $p => $pn) {
+                        $data[$i]['periode'] = $p;
+                        $data[$i]['core'] = array_key_exists($p, $cores) ? $cores[$p]['vals'] : null;
+                        $data[$i]['access'] = array_key_exists($p, $access) ? $access[$p]['vals'] : null;
+                        $data[$i]['ce'] = array_key_exists($p, $ce) ? $ce[$p]['vals'] : null;
+                        $i++;
+                    }
+                }
+
+                echo json_encode(['status' => 200, 'data' => $data]);
+            }
+            break;
+
         case 'site-issue-notclear':
             $conn_res = connect_dbtelkomtwamp();
             if (!$conn_res->success) {
@@ -931,25 +1002,10 @@ if (strtoupper($_SERVER['REQUEST_METHOD']) === 'GET') {
             } else {
                 $data = array('latency' => [], 'pl' => [], 'jitter' => []);
                 $db = $conn_res->conn;
-                $q = "select status,count(*) from (
-                    select *,
-                        case
-                            when pct_lose >= 0 and pct_lose <= 10 then 'platinum'
-                            when pct_lose > 10 and pct_lose <= 20 then 'gold'
-                            when pct_lose > 20 and pct_lose <= 30 then 'silver'
-                            when pct_lose > 30 then 'bronze'
-                    end status
-                    from (
-                        select b.*,
-                               cast(total_lose as float) / cast(total_rec as float)*100 pct_lose
-                            from (
-                            select region,count(*) total_rec,
-                                   sum(case when benchmark='lose' then 1 else 0 end) total_lose
-                            from production.report.v_tutela_benchmark_latency_mobile_weekly_kabupaten
-                            where yearweek=(select max(yearweek) from production.report.v_tutela_benchmark_latency_mobile_weekly_kabupaten) group by 1
-                        ) b
-                    ) c
-                    ) t group by 1";
+                $q = "select benchmark status,count(*) count from production.report.v_tutela_benchmark_latency_mobile_weekly_kabupaten
+                where yearweek=(select max(yearweek) from production.report.v_tutela_benchmark_latency_mobile_weekly_kabupaten)
+                and benchmark in ('win','par','lose')
+                group by 1";
 
                 $threshold = [];
                 $total = 0;
@@ -970,25 +1026,10 @@ if (strtoupper($_SERVER['REQUEST_METHOD']) === 'GET') {
                     $i++;
                 }
 
-                $q = "select status,count(*) from (
-                    select *,
-                        case
-                            when pct_lose >= 0 and pct_lose <= 10 then 'platinum'
-                            when pct_lose > 10 and pct_lose <= 20 then 'gold'
-                            when pct_lose > 20 and pct_lose <= 30 then 'silver'
-                            when pct_lose > 30 then 'bronze'
-                    end status
-                    from (
-                        select b.*,
-                               cast(total_lose as float) / cast(total_rec as float)*100 pct_lose
-                            from (
-                            select region,count(*) total_rec,
-                                   sum(case when benchmark='lose' then 1 else 0 end) total_lose
-                            from production.report.v_tutela_benchmark_packetloss_mobile_weekly_kabupaten
-                            where yearweek=(select max(yearweek) from production.report.v_tutela_benchmark_packetloss_mobile_weekly_kabupaten) group by 1
-                        ) b
-                    ) c
-                    ) t group by 1";
+                $q = "select benchmark status,count(*) count from production.report.v_tutela_benchmark_packetloss_mobile_weekly_kabupaten
+                where yearweek=(select max(yearweek) from production.report.v_tutela_benchmark_packetloss_mobile_weekly_kabupaten)
+                and benchmark in ('win','par','lose')
+                group by 1";
 
                 $threshold = [];
                 $total = 0;
@@ -1009,25 +1050,10 @@ if (strtoupper($_SERVER['REQUEST_METHOD']) === 'GET') {
                     $i++;
                 }
 
-                $q = "select status,count(*) from (
-                    select *,
-                        case
-                            when pct_lose >= 0 and pct_lose <= 10 then 'platinum'
-                            when pct_lose > 10 and pct_lose <= 20 then 'gold'
-                            when pct_lose > 20 and pct_lose <= 30 then 'silver'
-                            when pct_lose > 30 then 'bronze'
-                    end status
-                    from (
-                        select b.*,
-                               cast(total_lose as float) / cast(total_rec as float)*100 pct_lose
-                            from (
-                            select region,count(*) total_rec,
-                                   sum(case when benchmark='lose' then 1 else 0 end) total_lose
-                            from production.report.v_tutela_benchmark_jitter_mobile_weekly_kabupaten
-                            where yearweek=(select max(yearweek) from production.report.v_tutela_benchmark_jitter_mobile_weekly_kabupaten) group by 1
-                        ) b
-                    ) c
-                    ) t group by 1";
+                $q = "select benchmark status,count(*) count from production.report.v_tutela_benchmark_jitter_mobile_weekly_kabupaten
+                where yearweek=(select max(yearweek) from production.report.v_tutela_benchmark_jitter_mobile_weekly_kabupaten)
+                and benchmark in ('win','par','lose')
+                group by 1";
 
                 $threshold = [];
                 $total = 0;
@@ -1276,7 +1302,7 @@ if (strtoupper($_SERVER['REQUEST_METHOD']) === 'GET') {
                         from cnq.nossa_telkomsel 
                         -- where ticketid in ('IN170667254','IN170676691','IN170656857')
                         where trouble_headline like '%RECOVERY%'
-                        and creationdate >= '$mingguLalu' and creationdate <= '$mingguDepan'
+                        and creationdate >= '$from' and creationdate <= '$to'
                         ) x";
 
                 $q = $db->query($q);
@@ -1337,6 +1363,8 @@ if (strtoupper($_SERVER['REQUEST_METHOD']) === 'GET') {
             echo json_encode(['status' => 200, 'data' => $data]);
             break;
         case 'sla-performance':
+            // $dataFile = "data/sla-performance.json";
+            // if (file_exists($dataFile)) {
             $backInterval = isset($_GET['backinterval']) ? $_GET['backinterval'] : 4;
             $data = array(
                 '4g' => array('pl' => [], 'lat' => [], 'jitt' => []),
@@ -1351,6 +1379,9 @@ if (strtoupper($_SERVER['REQUEST_METHOD']) === 'GET') {
 
             $cti = sla_performance_cti_monthly($backInterval);
             $data = array_merge($data, $cti);
+            // } else {
+            //     $data = file_get_contents($dataFile);
+            // }
             echo json_encode(['status' => 200, 'data' => $data]);
             break;
         case 'sla-performance-region':
@@ -1387,16 +1418,79 @@ if (strtoupper($_SERVER['REQUEST_METHOD']) === 'GET') {
             $data = array_merge($data, $cti);
             echo json_encode(['status' => 200, 'data' => $data]);
             break;
-        case 'sla-performance-treg-tes':
-            $backInterval = isset($_GET['backinterval']) ? $_GET['backinterval'] : 4;
-            $data = array(
-                '4g' => array('pl' => [], 'lat' => [], 'jitt' => []),
-                'cti' => array('pl' => [], 'lat' => [], 'jitt' => []),
-            );
+        case 'core-national-stats':
+            $conn_res = connect_dbtelkomtwamp();
+            if (!$conn_res->success) {
+                echo json_encode(['status' => 500, 'msg' => $conn_res->msg]);
+            } else {
+                $db_twamp = $conn_res->conn;
+                $backInterval = isset($_GET['backinterval']) ? $_GET['backinterval'] : 4;
+                $data = [];
 
-            $cti = sla_performance_cti_treg($backInterval);
-            $data = array_merge($data, $cti);
-            echo json_encode(['status' => 200, 'data' => $data]);
+                $q = "select id_region,treg,avg(packetloss) avg_pl,avg(latency) avg_lat,avg(jitter) avg_jitt from (
+                    select * from (
+                    select date,id_region,treg,id_region_tsel,region_tsel,packetloss,latency,jitter,threshold_packetloss,threshold_latency,threshold_jitter,
+                        case when packetloss > threshold_packetloss then 'not clear' else 'clear' end pl_status,
+                        case when latency > threshold_latency then 'not clear' else 'clear' end lat_status,
+                        case when jitter > threshold_jitter then 'not clear' else 'clear' end jit_status from (
+                                select date,packetloss,latency/1000 latency,jitter/100 jitter,threshold_packetloss,threshold_jitter,
+                                       case when verifier_code = 'PNK' then tg.threshold_latency_manado else tg.threshold_latency_batam end threshold_latency,
+                                       reg.id_region,reg.treg,reg.id_region_tsel,reg.region_tsel
+                                       from ci_bk.brix_cti re join master.brix_target_cti_unique tg on re.id_region_tsel=tg.id_region_tsel and year(re.date)=tg.year
+                                       join master.region reg on re.id_region_tsel=reg.id_region_tsel and hostname_title like 'EBR%' 
+                                where date(date) >= date(date_sub(now(),interval 1 week))
+                        ) t1
+                    ) t2 where (pl_status != 'clear' or lat_status != 'clear' and jit_status != 'clear')
+                    ) t3 group by 1,2";
+                $q = $db_twamp->query($q);
+
+                while ($b = $q->fetch_assoc()) {
+                    $data[] = $b;
+                }
+                $q->free_result();
+                $q->free_result();
+                $db_twamp->close();
+
+                echo json_encode(['status' => 200, 'data' => $data]);
+            }
+
+            break;
+        case 'core-cti-not-clear':
+            $conn_res = connect_dbtelkomtwamp();
+            if (!$conn_res->success) {
+                echo json_encode(['status' => 500, 'msg' => $conn_res->msg]);
+            } else {
+                $db_twamp = $conn_res->conn;
+                $backInterval = isset($_GET['backinterval']) ? $_GET['backinterval'] : 4;
+                $data = [];
+
+                $q = "select date_format(date,'%Y-%m-%01') month_periode,avg(packetloss) avg_pl,avg(latency) avg_lat,avg(jitter) avg_jitt from (
+                    select * from (
+                    select date,id_region,treg,id_region_tsel,region_tsel,packetloss,latency,jitter,threshold_packetloss,threshold_latency,threshold_jitter,
+                        case when packetloss > threshold_packetloss then 'not clear' else 'clear' end pl_status,
+                        case when latency > threshold_latency then 'not clear' else 'clear' end lat_status,
+                        case when jitter > threshold_jitter then 'not clear' else 'clear' end jit_status from (
+                                select date,packetloss,latency/1000 latency,jitter/100 jitter,threshold_packetloss,threshold_jitter,
+                                       case when verifier_code = 'PNK' then tg.threshold_latency_manado else tg.threshold_latency_batam end threshold_latency,
+                                       reg.id_region,reg.treg,reg.id_region_tsel,reg.region_tsel
+                                       from ci_bk.brix_cti re join master.brix_target_cti_unique tg on re.id_region_tsel=tg.id_region_tsel and year(re.date)=tg.year
+                                       join master.region reg on re.id_region_tsel=reg.id_region_tsel 
+                                       where date(date) >= date_format(date_sub(now(),interval 6 month),'%Y-%m-01') 
+                        ) t1
+                    ) t2 where (pl_status != 'clear' or lat_status != 'clear' and jit_status != 'clear')
+                    ) t3 group by 1 order by 1";
+                $q = $db_twamp->query($q);
+
+                while ($b = $q->fetch_assoc()) {
+                    $data[] = $b;
+                }
+                $q->free_result();
+                $q->free_result();
+                $db_twamp->close();
+
+                echo json_encode(['status' => 200, 'data' => $data]);
+            }
+
             break;
         default:
             echo json_encode(['status' => 400, 'msg' => 'unknown cmd ' . $_GET['cmd']]);
@@ -1509,7 +1603,7 @@ function sla_performance_cti_monthly($backInterval = 4)
             select date_format(date,'%Y-%m-01') month_period,count(*) total_row,
                    sum(case when pl_status!='clear' then 1 else 0 end) pl_nok,
                    sum(case when lat_status!='clear' then 1 else 0 end) lat_nok,
-                   sum(case when pl_status!='clear' then 1 else 0 end) jitt_nok
+                   sum(case when jit_status!='clear' then 1 else 0 end) jitt_nok
             from ($sql_daily_brix) t2 group by 1
             ) t3
             ) t4 join (select 99.45 as target_sla) tgt;";
@@ -1563,7 +1657,7 @@ function sla_performance_cti_region_tsel($backInterval = 4)
             select date_format(date,'%Y-%m-01') month_period,id_region_tsel,concat(id_region_tsel,'-',region_tsel) region,count(*) total_row,
                    sum(case when pl_status!='clear' then 1 else 0 end) pl_nok,
                    sum(case when lat_status!='clear' then 1 else 0 end) lat_nok,
-                   sum(case when pl_status!='clear' then 1 else 0 end) jitt_nok
+                   sum(case when jit_status!='clear' then 1 else 0 end) jitt_nok
             from ($sql_daily_brix) t2 group by 1,2,3
             ) t3
         ) t4 join (select 99.45 as target_sla) tgt order by 1,2";
@@ -1623,7 +1717,7 @@ function sla_performance_cti_treg($backInterval = 4)
             select date_format(date,'%Y-%m-01') month_period,id_region,treg,count(*) total_row,
                    sum(case when pl_status!='clear' then 1 else 0 end) pl_nok,
                    sum(case when lat_status!='clear' then 1 else 0 end) lat_nok,
-                   sum(case when pl_status!='clear' then 1 else 0 end) jitt_nok
+                   sum(case when jit_status!='clear' then 1 else 0 end) jitt_nok
             from ($sql_daily_brix) t2 group by 1,2,3
             ) t3
         ) t4 join (select 99.45 as target_sla) tgt order by 1,2";
@@ -1675,7 +1769,7 @@ function brix_daily_sql($backInterval = 4)
                    reg.id_region,reg.treg,reg.id_region_tsel,reg.region_tsel
                    from ci_bk.brix_cti re join master.brix_target_cti_unique tg on re.id_region_tsel=tg.id_region_tsel and year(re.date)=tg.year
                    join master.region reg on re.id_region_tsel=reg.id_region_tsel
-            where date >= date_format(date_sub(now(),interval $backInterval month),'%Y-%m-01')
+            where date(date) >= date_format(date_sub(now(),interval $backInterval month),'%Y-%m-01')
     ) t1";
 
     return $sql;
@@ -1796,7 +1890,7 @@ function sla_performance_4g_weekly_sql($var = "packetloss", $backInterval = 4)
         $var = "packetloss_status = 'CONSECUTIVE'";
         $sla_group = " and sla_group='pl-bbc' ";
     } elseif ($var == 'packetloss-nbbc') {
-        $var = "latency_status != 'CLEAR'";
+        $var = "packetloss_status = 'CONSECUTIVE'";
         $sla_group = " and sla_group='pl-nbbc' ";
     } elseif ($var == 'latency') {
         $var = "latency_status != 'CLEAR'";
@@ -1836,7 +1930,7 @@ function sla_performance_4g_region_tsel($var = "packetloss", $backInterval = 4)
             $sla_group = " and sla_group='pl-bbc' ";
             $region_tsel_sql = " case when r.id_region_tsel in (4,5,6) then concat(r.id_region_tsel,'-',r.region_tsel,case when io=1 then ' INNER' else ' OUTER' end) else concat(r.id_region_tsel,'-',r.region_tsel) end region_tsel ";
         } elseif ($var == 'packetloss-nbbc') {
-            $var = "latency_status != 'CLEAR'";
+            $var = "packetloss_status = 'CONSECUTIVE'";
             $sla_group = " and sla_group='pl-nbbc' ";
         } elseif ($var == 'latency') {
             $var = "latency_status != 'CLEAR'";
