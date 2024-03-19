@@ -100,8 +100,6 @@ const page1card3 = a => {
 		m.p1.c3.data.datasets[0].data = b.data.map(a=>a.ce?parseFloat(a.ce.split('|')[1])||null:null)
 		m.p1.c3.update()
 
-		console.log(m.p1.c3.data.datasets[0])
-
 	})
 }
 
