@@ -1,18 +1,21 @@
 const ticket1card5 = a => {
 	a = el({a:'div', b:a, d:{id:'ticket1card5'} });
-	el({ a: "div", b: a, c: "Total Ticket Monthly", d:{class:"title"} });
+	el({ a: "div", b: a, c: "Total Ticket Monthly (Open VC Close)", d:{class:"title"} });
 	el({ a: "div", b: a, c: "99%", d:{class:"titleBody"} });
 
 	(a => {
 		const lines2 = el({a:'div', b:a})
 		var options = {
-			series: [{
-			name: 'series1',
-			data: [31, 40, 28, 51, 42, 109, 100]
-		  		}],
+			series: [],
 			chart: {
-			height: 120,
+				toolbar: {
+					show: false
+				  },
+			height: 150,
 			type: 'area'
+		  },
+		  legend: {
+			show: false
 		  },
 		  dataLabels: {
 			enabled: false
@@ -20,21 +23,47 @@ const ticket1card5 = a => {
 		  stroke: {
 			curve: 'smooth'
 		  },
-		  xaxis: {
-			type: 'datetime',
-			categories: ["2018-09-19T00:00:00.000Z", "2018-09-19T01:30:00.000Z", "2018-09-19T02:30:00.000Z", "2018-09-19T03:30:00.000Z", "2018-09-19T04:30:00.000Z", "2018-09-19T05:30:00.000Z", "2018-09-19T06:30:00.000Z"]
-		  },
-		  tooltip: {
-			x: {
-			  format: 'dd/MM/yy HH:mm'
-			},
-		  },
+		  
+		 
 		  };
   
 		  var chart = new ApexCharts(lines2, options);
 		  chart.render();
 
+		  fetch("tmp.php?cmd=ticket-monthly-open-close").then((a) => a.json()).then((b) => { 
+			var dataClose = [];
+			var dataOpen = [];
+			var dataLable = [];
+			b.data.forEach(opc => {
+				dataClose.push(opc.ticked_closed)
+				dataOpen.push(opc.ticket_total - opc.ticked_closed)
+				dataLable.push(opc.periode)
+			});
+
+			console.log(dataClose)
+			chart.updateSeries([
+				{
+				name: 'Open',
+				data: dataOpen
+				},
+				{
+				name: 'Close',
+				data: dataClose
+				}, 
+			]);
+	
+				chart.updateOptions({
+				xaxis: {
+					categories: dataLable
+				}
+				});
+		  })
+
+		  
+		 
 
 	})(el({a:'div', b:a, d:{style:"margin-bottom:2vh"} }))
 
+	
+	
 }

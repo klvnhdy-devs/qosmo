@@ -1,29 +1,22 @@
-#ticket1card0 {
+#access1card1 {
 	display: flex;
-	flex-wrap: wrap;
-	align-content: space-between;
-	justify-content: space-between;
-	padding: 0;
+	flex-direction: column;
+	gap: 2vmin;
 	position: fixed;
 	top: 12.5vh;
 	left: 2.7vw;
-	width: 94.5vw;
-	height: 85vh;
 }
-#ticket1card0 > div {
-	background: #ffffff;
-	border-radius: 2vmin;
-	box-shadow: 0 3px 37px 0 rgba(0,0,0,0.05);
-	width: 22.0vw;
+#access1card1 > div:nth-child(1) {
+	display: flex;
+	gap: 1vw;
 }
-#ticket1card1, #ticket1card2, #ticket1card3, #ticket1card4 {
-	height: 11.75vh;
+#access1card1 > div:nth-child(1) > div {
+	color: #9a9a9a;
+	font-size: 2vmin;
+	font-weight: bold;
 }
-#ticket1card5, #ticket1card6, #ticket1card7, #ticket1card8 {
-	height: 27.5vh;
-}
-#ticket1card9, #ticket1card10, #ticket1card11, #ticket1card12 {
-	height: 41.75vh;
+#access1card1 > div:nth-child(1) > div.active {
+	color: #131313;
 }
 #access1card1 > div:nth-child(2) {
 	display: flex;
