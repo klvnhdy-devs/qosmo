@@ -14,7 +14,7 @@ const ticket1card9 = a => {
 	(a => {
 		for (var i=1; i<5; i++) {
 			const b = el({a:'tr', b:a})
-			el({a:'td', b:b, c:`Lorem Ipsum` ,d:{class:'tableTicketBorder'} })
+			el({a:'td', b:b, c:`Lorem Ipsum	` ,d:{class:'tableTicketBorder'} })
 			el({a:'td', b:b  ,d:{class:'tableTicketBorder'} })
 			el({a:'td', b:b  ,d:{class:'tableTicketBorder'} })
 			el({a:'td', b:b  ,d:{class:'tableTicketBorder'} })
