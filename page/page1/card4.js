@@ -74,8 +74,6 @@ const page1card4 = a => {
 	})(el({a:'div', b:a, d:{} }))
 	
 	fetch('api.php?cmd=site-profile').then(a=>a.json()).then(a => {
-		console.log(a.data.pl)
-		console.log(100 - parseFloat(a.data.pl[0].pct_not_clear), 100 - parseFloat(a.data.lat[0].pct_not_clear), 100 - parseFloat(a.data.jitt[0].pct_not_clear))
 		m.p1.card4.updateSeries(
 			[100 - parseFloat(a.data.pl[0].pct_not_clear), 100 - parseFloat(a.data.lat[0].pct_not_clear), 100 - parseFloat(a.data.jitt[0].pct_not_clear)]
 		)

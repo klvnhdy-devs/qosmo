@@ -34,22 +34,44 @@ const page1card5 = a => {
 		el({a:'td', b:a })
 		el({a:'td', b:a })
 		el({a:'td', b:a })
+		el({a:'td', b:a })
 
 	})(a);
 
 	//site not clear
 	fetch('api.php?cmd=site-issue-notclear').then(a=>a.json()).then(b => {
-		a = [...a.querySelectorAll('tr>td:first-child')]
-		var total = 0
-		b.data.forEach(b => {
-			const c = (a.find(a=>a.textContent == b.region.toUpperCase()) || {parentElement:null}).parentElement
-			if (c) {
-				c.children[2].textContent = b.site_not_clear
-				total += parseInt(b.site_not_clear) || 0
-			}
-		})
+		console.log(b)
+		const total = {
+			sites:0,
+			not_clear:0,
+			onorder:0,
+			onticket:0,
+			noplan:0
+		}
+		const ln = a.children.length -1
+		for (var i=1; i<ln; i++) {
+			const c = b.data.find(b=>b.region.toUpperCase() == a.children[i].children[0].textContent.toUpperCase())
+			const d = [parseInt(c.total_sites) || 0 , parseInt(c.site_not_clear || 0)]
 
-		a[0].parentElement.parentElement.lastElementChild.children[2].textContent = total
-	})
+			a.children[i].children[1].textContent = (100*(d[0] - d[1])/d[0]).toFixed(2)
+			a.children[i].children[2].textContent = c.total_sites
+			a.children[i].children[2].textContent = c.total_sites
+			a.children[i].children[3].textContent = c.site_not_clear
+			a.children[i].children[4].textContent = c.on_order
+			a.children[i].children[5].textContent = c.on_ticket
+			a.children[i].children[6].textContent = c.no_plan
+			total.sites += d[0]
+			total.not_clear += d[1]
+			total.onorder += parseInt(c.on_order) || 0
+			total.onticket += parseInt(c.on_ticket) || 0
+			total.noplan += parseInt(c.no_plan) || 0
+		}
+		a.children[ln].children[1].textContent = (100*(total.sites - total.not_clear)/total.sites).toFixed(2)
+		a.children[ln].children[2].textContent = total.sites
+		a.children[ln].children[3].textContent = total.not_clear
+		a.children[ln].children[4].textContent = total.onorder
+		a.children[ln].children[5].textContent = total.onticket
+		a.children[ln].children[6].textContent = total.noplan
 	
+	})
 }
