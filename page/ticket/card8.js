@@ -1,6 +1,6 @@
-const ticket1card5 = a => {
-	a = el({a:'div', b:a, d:{id:'ticket1card5'} });
-	el({ a: "div", b: a, c: "Total Ticket Monthly", d:{class:"title"} });
+const ticket1card8 = a => {
+	a = el({a:'div', b:a, d:{id:'ticket1card8'} });
+	el({ a: "div", b: a, c: "TTR", d:{class:"title"} });
 	el({ a: "div", b: a, c: "99%", d:{class:"titleBody"} });
 
 	(a => {
@@ -11,7 +11,7 @@ const ticket1card5 = a => {
 			data: [31, 40, 28, 51, 42, 109, 100]
 		  		}],
 			chart: {
-			height: 120,
+			height: 150,
 			type: 'area'
 		  },
 		  dataLabels: {

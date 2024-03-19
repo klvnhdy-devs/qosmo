@@ -1,7 +1,7 @@
-const ticket1card11 = a => {
-	a = el({a:'div', b:a, d:{id:'ticket1card11'} });
-	el({ a: "div", b: a, c: "Total RCO", d:{class:"title"} });
-
+const ticket1card10 = a => {
+	a = el({a:'div', b:a, d:{id:'ticket1card10'} });
+	el({ a: "div", b: a, c: "Total RCA", d:{class:"title"} });
+	
 	a = el({a:'table', b:a, d:{id:'tablePageTicket', style:'padding:2vh;width:100%;height: 30vh;'} });
 
 	(a => {
@@ -20,5 +20,7 @@ const ticket1card11 = a => {
 			el({a:'td', b:b  ,d:{class:'tableTicketBorder'} })
 		}
 	})(a);
+	
+
 
 }

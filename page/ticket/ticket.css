@@ -111,3 +111,27 @@
 #access1card6 {
 	left: 70.7vw;
 }
+
+.title {
+    font-size: 2vh;
+    font-weight: bold;
+    margin-top: 1.5vh;
+    margin-left: 1.5vh;
+}
+
+.titleBody {
+    font-size: 3vh;
+    font-weight: bold;
+    margin-top: 1.5vh;
+    margin-left: 1.5vh;
+}
+
+.tableTicket { 
+    text-align: left;
+    color: gray;
+    
+}
+
+.tableTicketBorder {
+	border-bottom: 2px dotted gray;
+}
