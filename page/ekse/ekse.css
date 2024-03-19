@@ -137,6 +137,20 @@
 	-webkit-transition: .4s;
 	transition: .4s;
 }
+#slider2 {
+	position: absolute;
+	margin-top: -39vh;
+	margin-left: 16vw;
+}
+#slider2 > div:before {
+	content:'Weekly';
+}
+#slider2 > input:checked ~ .slider1:before {
+	content: 'Monthly';
+	-webkit-transform: translateX(100%);
+	-ms-transform: translateX(100%);
+	transform: translateX(100%);
+}
 
 .sla-tabel {
 	border-collapse: collapse;

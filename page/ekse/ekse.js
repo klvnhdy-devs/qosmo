@@ -177,8 +177,18 @@ const executive1 = a => {
 					}
 				},
 			}
-		})
+		});
 		
+		//slider
+		(a => {
+			
+			el({a:'input', b:a, d:{type:'checkbox', checked:true, class:'slider-checkbox', style:'margin-top:-1.5vh'}, e:{change:a=>{
+				//m.ekse.chart2GantiData(a.target.checked ? 'cti' : '4g')
+			}}})
+			el({a:'div', b:el({a:'div', b:el({a:'div', b:a, d:{class:'slider1'}}), c:'Weekly'}).parentElement, c:'Monthly'})
+			
+		})(el({a:'label', b:a, d:{id:'slider2'}}))
+
 		//pasang loading
 		el({a:'span', b:el({a:'div', b:a, d:{id:'loadingEkseCard2', style:'position:absolute; margin-top:-40vh; margin-left:0vw; height:35vh; width:24vw; background:rgba(0,0,0,0.5); border-radius:9px; display:flex;align-items:center;justify-content:center;'}}), d:{class:'loader'} })
 		
@@ -330,6 +340,7 @@ const executive1 = a => {
 				m.chart2.update()
 			}
 		}
+
 		//slider
 		(a => {
 			
@@ -339,6 +350,7 @@ const executive1 = a => {
 			el({a:'div', b:el({a:'div', b:el({a:'div', b:a, d:{class:'slider1'}}), c:'4G'}).parentElement, c:'CTI'})
 			
 		})(el({a:'label', b:a, d:{id:'slider1'}}))
+
 		//pasang loading
 		el({a:'span', b:el({a:'div', b:a, d:{id:'loadingEkseCard3', style:'position:absolute; margin-top:-40vh; margin-left:0vw; height:35vh; width:29vw; background:rgba(0,0,0,0.5); border-radius:9px; display:flex;align-items:center;justify-content:center;'}}), d:{class:'loader'} })
 	})(a)
@@ -851,12 +863,12 @@ const executive1 = a => {
 		['youtube', 'facebook', 'netflix', 'tiktok']. forEach((a,f) => {
 			(a => {
 				const b = parseFloat((a.find(a=>a.type=='global')||{avg_time:100}).avg_time)
-				m.chart3.data.datasets[0].data[f] = b - 100
-				m.chart3.data.datasets[1].data[f] = (b - 100) - 100
+				m.chart3.data.datasets[0].data[f] = b// - 100
+				//m.chart3.data.datasets[1].data[f] = (b - 100) - 100
 				
 				const c = parseFloat((a.find(a=>a.type=='cdn')||{avg_time:100}).avg_time)
 				m.chart3.data.datasets[2].data[f] = c
-				m.chart3.data.datasets[3].data[f] = 100 - c
+				//m.chart3.data.datasets[3].data[f] = 100 - c
 			})(b.data.filter(b=>b.category==a));
 		})
 		m.chart3.update()
