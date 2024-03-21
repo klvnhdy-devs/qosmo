@@ -1,15 +1,21 @@
 <?php
-// error_reporting(E_ALL);
-// ini_set("display_errors", 1);
 ini_set('max_execution_time', '60');
 header('Content-Type: application/json; charset=utf-8');
 $u1 = strtotime("last Thursday");
 $u2 = strtotime("next Thursday");
+$today = date('Y-m-d');
 $mingguLalu = date('Y-m-d', $u1);
 $mingguDepan = date('Y-m-d', $u2);
 $mingguLalu = '2024-03-07';
 $mingguDepan = '2024-03-14';
+$isdev = isset($_GET['dev']) ? true : false;
+$from = isset($_GET['from']) ? $_GET['from'] : date("Y-m-d", strtotime("-7 days", strtotime($today)));
+$to = isset($_GET['to']) ? $_GET['to'] : $today;
 
+if ($isdev) {
+    error_reporting(E_ALL);
+    ini_set("display_errors", 1);
+}
 if (strtoupper($_SERVER['REQUEST_METHOD']) === 'GET') {
 
 
@@ -171,12 +177,13 @@ if (strtoupper($_SERVER['REQUEST_METHOD']) === 'GET') {
                     echo json_encode(['status' => 500, 'msg' => 'cannot connect to DB']);
                 } else {
                     $db = $conn_res->conn;
-                    $q = "select yearweek,avg(avg_packetloss) avg_pl,avg(avg_latency) avg_lat, avg(avg_jitter) avg_jitt
-                    from production.report.tutela_mobile_weekly_nation where date_start >= to_char(now() - interval '12 week','YYYY-MM-01')::date
-                    group by 1 order by 1";
+                    $q = "select concat(extract('year' from date_start),lpad(cast(extract('week' from date_start) as varchar),2,'0')) yearweek,avg(avg_packetloss) avg_pl,avg(avg_latency) avg_lat, avg(avg_jitter) avg_jitt
+                    from production.report.tutela_mobile_weekly_nation where date_start >= to_char(now() - interval '12 weeks','YYYY-MM-01')::date
+                    group by 1 order by 1 desc limit 12";
                     $result = pg_query($db, $q);
 
                     $ce = [];
+                    $periods = [];
                     while ($b = pg_fetch_assoc($result)) {
                         $periods[$b['yearweek']] = $b['yearweek'];
                         $ce[$b['yearweek']]['vals'] = $b['avg_pl'] . "|" . $b['avg_lat'] . "|" . $b['avg_jitt'];
@@ -1285,13 +1292,8 @@ if (strtoupper($_SERVER['REQUEST_METHOD']) === 'GET') {
             } else {
                 $db = $conn_res->conn;
                 $data = [];
-                $u1 = strtotime("last Monday");
-                $u2 = strtotime("next Monday");
-                $mingguLalu = date('Y-m-d', $u1);
-                $mingguDepan = date('Y-m-d', $u2);
                 $from = isset($_GET['from']) ? $_GET['from'] : $mingguLalu;
                 $to = isset($_GET['to']) ? $_GET['to'] : $mingguDepan;
-
 
                 // extract impacted metro
                 $metros = [];
@@ -1299,8 +1301,7 @@ if (strtoupper($_SERVER['REQUEST_METHOD']) === 'GET') {
                         SELECT regexp_substr(trouble_headline,'METRO ME([0-9]?)-[^ ]+') m1,
                                regexp_substr(trouble_headline,' TO ME([0-9]?)-[^ ]+') m2,
                                trouble_headline
-                        from cnq.nossa_telkomsel 
-                        -- where ticketid in ('IN170667254','IN170676691','IN170656857')
+                        from cnq.nossa_telkomsel                         
                         where trouble_headline like '%RECOVERY%'
                         and creationdate >= '$from' and creationdate <= '$to'
                         ) x";
@@ -1334,7 +1335,7 @@ if (strtoupper($_SERVER['REQUEST_METHOD']) === 'GET') {
 
                     // count impacted sites
                     $str_sites = "'" . implode("','", $sites) . "'";
-                    $sql = "select id_region,region,sum(case when (packetloss_status = 'CONSECUTIVE' OR latency_status!='CLEAR') then 1 else 0 end) site_not_clear from ci_twamp.twamp_4g_weekly where tanggal>='$mingguLalu' and tanggal < '$mingguDepan' and site_id in ($str_sites) group by 1,2 order by 1";
+                    $sql = "select id_region,region,sum(case when (packetloss_status = 'CONSECUTIVE' OR latency_status!='CLEAR') then 1 else 0 end) site_not_clear from ci_twamp.twamp_4g_weekly where tanggal>='$from' and tanggal <= '$to' and site_id in ($str_sites) group by 1,2 order by 1";
 
                     $q = $db->query($sql);
 
@@ -1418,36 +1419,132 @@ if (strtoupper($_SERVER['REQUEST_METHOD']) === 'GET') {
             $data = array_merge($data, $cti);
             echo json_encode(['status' => 200, 'data' => $data]);
             break;
-        case 'core-national-stats':
+        case 'core-ebr-not-achieve':
+            $cr = connect_dbtelkomtwamp();
+            $dbtw = $cr->conn;
+            $data = [];
+
+            $sql = "select id_region,treg,avg(packetloss) avg_pl,avg(latency) avg_lat,avg(jitter) avg_jitt from (
+                        select * from (
+                        select date,id_region,treg,id_region_tsel,region_tsel,packetloss,latency,jitter,threshold_packetloss,threshold_latency,threshold_jitter,
+                            case when packetloss > threshold_packetloss then 'not clear' else 'clear' end pl_status,
+                            case when latency > threshold_latency then 'not clear' else 'clear' end lat_status,
+                            case when jitter > threshold_jitter then 'not clear' else 'clear' end jit_status from (
+                                    select date,packetloss,latency/1000 latency,jitter/100 jitter,threshold_packetloss,threshold_jitter,
+                                           case when verifier_code = 'PNK' then tg.threshold_latency_manado else tg.threshold_latency_batam end threshold_latency,
+                                           reg.id_region,reg.treg,reg.id_region_tsel,reg.region_tsel
+                                           from ci_bk.brix_cti re join master.brix_target_cti_unique tg on re.id_region_tsel=tg.id_region_tsel and year(re.date)=tg.year
+                                           join master.region reg on re.id_region_tsel=reg.id_region_tsel and hostname_title like 'EBR%' 
+                                    where date(date) >= '$from' and date <= '$to' 
+                            ) t1
+                        ) t2 where (pl_status != 'clear' or lat_status != 'clear' or jit_status != 'clear')
+                        ) t3 group by 1,2";
+            $q = $dbtw->query($sql);
+
+            while ($b = $q->fetch_assoc()) {
+                $data[] = $b;
+            }
+            $q->free_result();
+            $dbtw->close();
+
+            echo json_encode(['status' => 200, 'data' => $data, 'q' => $sql]);
+
+
+            break;
+        case 'core-ebr-not-clear':
+            // dummy data
+            $data = array(
+                'total' => 13, 'current_week' => 235, 'monthly' => []
+            );
+            $periodes = generateMonthlyPeriode($to);
+            $i = 0;
+            foreach ($periodes as $p) {
+                $data['monthly'][$i]['periode'] = $p;
+                $data['monthly'][$i]['count'] = rand(18000, 20000);
+                $i++;
+            }
+            if (!$isdev) {
+                echo json_encode(['status' => 200, 'data' => $data]);
+                exit(0);
+            }
+
+            $cr = connect_dbtelkomtwamp();
+            $dbtw = $cr->conn;
+            $data = array(
+                'monthly' => [], 'current_week' => 235, 'total' => 13
+            );
+
+            // ebr not clear monthly
+            $q = "select date_format(date,'%b-%Y') periode,count(*) count from (
+                        select * from (
+                            select date,id_region,treg,id_region_tsel,region_tsel,packetloss,latency,jitter,threshold_packetloss,threshold_latency,threshold_jitter,
+                                case when packetloss > threshold_packetloss then 'not clear' else 'clear' end pl_status,
+                                case when latency > threshold_latency then 'not clear' else 'clear' end lat_status,
+                                case when jitter > threshold_jitter then 'not clear' else 'clear' end jit_status from (
+                                        select date,packetloss,latency/1000 latency,jitter/100 jitter,threshold_packetloss,threshold_jitter,
+                                               case when verifier_code = 'PNK' then tg.threshold_latency_manado else tg.threshold_latency_batam end threshold_latency,
+                                               reg.id_region,reg.treg,reg.id_region_tsel,reg.region_tsel
+                                               from ci_bk.brix_cti re join master.brix_target_cti_unique tg on re.id_region_tsel=tg.id_region_tsel and year(re.date)=tg.year
+                                               join master.region reg on re.id_region_tsel=reg.id_region_tsel and hostname_title like 'EBR%'
+                                        where date(date) >= '$from' and date(date) <= '$to'                                         
+                                ) t1
+                            ) t2
+                                 where (pl_status != 'clear' or lat_status != 'clear' or jit_status != 'clear')
+                    ) t3 group by 1 order by 1";
+            $q = $dbtw->query($q);
+
+            while ($b = $q->fetch_assoc()) {
+                $data['monthly'] = $b;
+            }
+            $q->free_result();
+            $dbtw->close();
+
+            echo json_encode(['status' => 200, 'data' => $data]);
+
+
+            break;
+        case 'core-cti-vs-baseline':
+            // dummy data
+            $backInterval = isset($_GET['backinterval']) ? $_GET['backinterval'] : 2;
+            $data = [];
+            $periodes = generateMonthlyPeriode(date('Y-m-d'));
+            $i = 0;
+            foreach ($periodes as $p) {
+                $data[$i]['periode'] = $p;
+                $data[$i]['cti'] = rand(18000, 20000);
+                $data[$i]['baseline'] = rand(18000, 20000);
+                $i++;
+            }
+            echo json_encode(['status' => 200, 'data' => $data]);
+            exit(0);
+
             $conn_res = connect_dbtelkomtwamp();
+            $db_twamp = $conn_res->conn;
             if (!$conn_res->success) {
                 echo json_encode(['status' => 500, 'msg' => $conn_res->msg]);
             } else {
-                $db_twamp = $conn_res->conn;
-                $backInterval = isset($_GET['backinterval']) ? $_GET['backinterval'] : 4;
-                $data = [];
 
-                $q = "select id_region,treg,avg(packetloss) avg_pl,avg(latency) avg_lat,avg(jitter) avg_jitt from (
-                    select * from (
-                    select date,id_region,treg,id_region_tsel,region_tsel,packetloss,latency,jitter,threshold_packetloss,threshold_latency,threshold_jitter,
-                        case when packetloss > threshold_packetloss then 'not clear' else 'clear' end pl_status,
-                        case when latency > threshold_latency then 'not clear' else 'clear' end lat_status,
-                        case when jitter > threshold_jitter then 'not clear' else 'clear' end jit_status from (
-                                select date,packetloss,latency/1000 latency,jitter/100 jitter,threshold_packetloss,threshold_jitter,
-                                       case when verifier_code = 'PNK' then tg.threshold_latency_manado else tg.threshold_latency_batam end threshold_latency,
-                                       reg.id_region,reg.treg,reg.id_region_tsel,reg.region_tsel
-                                       from ci_bk.brix_cti re join master.brix_target_cti_unique tg on re.id_region_tsel=tg.id_region_tsel and year(re.date)=tg.year
-                                       join master.region reg on re.id_region_tsel=reg.id_region_tsel and hostname_title like 'EBR%' 
-                                where date(date) >= date(date_sub(now(),interval 1 week))
-                        ) t1
-                    ) t2 where (pl_status != 'clear' or lat_status != 'clear' and jit_status != 'clear')
-                    ) t3 group by 1,2";
+                $q = "select date_format(date,'%Y-%m-01') month_period,count(*) count from (
+                            select * from (
+                                select date,id_region,treg,id_region_tsel,region_tsel,packetloss,latency,jitter,threshold_packetloss,threshold_latency,threshold_jitter,
+                                    case when packetloss > threshold_packetloss then 'not clear' else 'clear' end pl_status,
+                                    case when latency > threshold_latency then 'not clear' else 'clear' end lat_status,
+                                    case when jitter > threshold_jitter then 'not clear' else 'clear' end jit_status from (
+                                            select date,packetloss,latency/1000 latency,jitter/100 jitter,threshold_packetloss,threshold_jitter,
+                                                   case when verifier_code = 'PNK' then tg.threshold_latency_manado else tg.threshold_latency_batam end threshold_latency,
+                                                   reg.id_region,reg.treg,reg.id_region_tsel,reg.region_tsel
+                                                   from ci_bk.brix_cti re join master.brix_target_cti_unique tg on re.id_region_tsel=tg.id_region_tsel and year(re.date)=tg.year
+                                                   join master.region reg on re.id_region_tsel=reg.id_region_tsel and hostname_title like 'EBR%'
+                                            where date(date) > date_format(date_sub(now(),interval $backInterval month),'%Y-%m-01')
+                                    ) t1
+                                ) t2
+                                     where (pl_status != 'clear' or lat_status != 'clear' or jit_status != 'clear')
+                        ) t3 group by 1 order by 1";
                 $q = $db_twamp->query($q);
 
                 while ($b = $q->fetch_assoc()) {
-                    $data[] = $b;
+                    $data['monthly'] = $b;
                 }
-                $q->free_result();
                 $q->free_result();
                 $db_twamp->close();
 
@@ -1477,7 +1574,7 @@ if (strtoupper($_SERVER['REQUEST_METHOD']) === 'GET') {
                                        join master.region reg on re.id_region_tsel=reg.id_region_tsel 
                                        where date(date) >= date_format(date_sub(now(),interval 6 month),'%Y-%m-01') 
                         ) t1
-                    ) t2 where (pl_status != 'clear' or lat_status != 'clear' and jit_status != 'clear')
+                    ) t2 where (pl_status != 'clear' or lat_status != 'clear' or jit_status != 'clear')
                     ) t3 group by 1 order by 1";
                 $q = $db_twamp->query($q);
 
@@ -1490,6 +1587,623 @@ if (strtoupper($_SERVER['REQUEST_METHOD']) === 'GET') {
 
                 echo json_encode(['status' => 200, 'data' => $data]);
             }
+
+            break;
+        case 'core-metro':
+            // nambah
+            $data = [];
+            $cr = connect_dbtelkomtwamp();
+            $dbtw = $cr->conn;
+
+            $sql = "select metro,periode,avg(avg_lat) avg_lat from (
+                    select 'cka' metro,date_format(date,'%Y-%m-01') periode,avg(latency/1000) avg_lat from ci_bk.me2mb_cka where date >= '$from' and date <= '$to' group by 1,2 
+                    union all
+                    select 'jt2' metro,date_format(date,'%Y-%m-01') periode,avg(latency/1000) avg_lat from ci_bk.me2mb_jt2 where date >= '$from' and date <= '$to' group by 1,2 
+                    union all
+                    select 'kbb' metro,date_format(date,'%Y-%m-01') periode,avg(latency/1000) avg_lat from ci_bk.me2mb_kbb where date >= '$from' and date <= '$to' group by 1,2 
+                    union all
+                    select 'slp' metro,date_format(date,'%Y-%m-01') periode,avg(latency/1000) avg_lat from ci_bk.me2mb_slp where date >= '$from' and date <= '$to' group by 1,2 
+                    ) x group by 1,2 order by 1";
+            $q = $dbtw->query($sql);
+
+            while ($b = $q->fetch_assoc()) {
+                $data[$b['metro']][] = $b;
+            }
+
+            $q->free_result();
+            $dbtw->close();
+
+            echo json_encode(['status' => 200, 'data' => $data, 'q' => $sql]);
+
+            break;
+        case 'ticket-sla-achievements':
+            $conn_res = connect_dbnossa();
+            if (!$conn_res->success) {
+                echo json_encode(['status' => 500, 'msg' => $conn_res->msg]);
+            } else {
+                $db = $conn_res->conn;
+
+                $q = $db->query("SELECT COUNT(*)AS ticket_open48
+                        FROM cnq.nossa_telkomsel where TROUBLE_HEADLINE like '%TSEL_CNQ%'
+                        AND TTR_CUSTOMER_JAM<48 AND DATE_FORMAT(CREATIONDATE, '%Y-%m')>DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 MONTH), '%Y-%m')
+                        GROUP BY treg");
+
+                $a = [];
+                while ($b = $q->fetch_assoc()) {
+                    $a[] = $b;
+                }
+                $q->free_result();
+                $db->close();
+
+                echo json_encode(['status' => 200, 'data' => $a]);
+                break;
+            }
+
+        case 'ticket-avg-mttr':
+            $conn_res = connect_dbnossa();
+            if (!$conn_res->success) {
+                echo json_encode(['status' => 500, 'msg' => $conn_res->msg]);
+            } else {
+                $db = $conn_res->conn;
+
+                //mttr
+                $q = $db->query("SELECT AVG(TTR_CUSTOMER_JAM)AS avg_mttr FROM cnq.nossa_telkomsel WHERE
+                    TROUBLE_HEADLINE like '%TSEL_CNQ%' AND date(CREATIONDATE)>='$from' and date(CREATIONDATE)<='$to' ");
+
+                $a = [];
+                if ($row = $q->fetch_assoc()) {
+                    $a[] = $row;
+                }
+                $q->free_result();
+
+                $db->close();
+
+                echo json_encode(['status' => 200, 'data' => $a]);
+                break;
+            }
+
+        case 'ticket-greaterthan-sla':
+            $conn_res = connect_dbnossa();
+            if (!$conn_res->success) {
+                echo json_encode(['status' => 500, 'msg' => $conn_res->msg]);
+            } else {
+                $db = $conn_res->conn;
+
+                $q = $db->query("SELECT COUNT(*)AS count
+                    FROM cnq.nossa_telkomsel where TROUBLE_HEADLINE like '%TSEL_CNQ%'
+                    AND TTR_CUSTOMER_JAM>48 AND STATUS<>'CLOSED' AND TK_REGION LIKE 'REG%'
+                    AND date(CREATIONDATE)>'$from' and date(CREATIONDATE) <= '$to' ");
+
+                $a = [];
+                while ($b = $q->fetch_assoc()) {
+                    $a[] = $b;
+                }
+                $q->free_result();
+                $db->close();
+
+                echo json_encode(['status' => 200, 'data' => $a, 'from' => $from, 'to' => $to]);
+                break;
+            }
+        case 'ticket-resolved-sla':
+            $conn_res = connect_dbnossa();
+            if (!$conn_res->success) {
+                echo json_encode(['status' => 500, 'msg' => $conn_res->msg]);
+            } else {
+                $db = $conn_res->conn;
+
+                $q = $db->query("SELECT COUNT(*)AS count
+                        FROM cnq.nossa_telkomsel where TROUBLE_HEADLINE like '%TSEL_CNQ%'
+                        AND TTR_CUSTOMER_JAM<=48 AND STATUS<>'CLOSED' AND TK_REGION LIKE 'REG%'
+                        AND date(CREATIONDATE)>'$from' and date(CREATIONDATE) <= '$to' ");
+
+                $a = [];
+                while ($b = $q->fetch_assoc()) {
+                    $a[] = $b;
+                }
+                $q->free_result();
+                $db->close();
+
+                echo json_encode(['status' => 200, 'data' => $a, 'from' => $from, 'to' => $to]);
+                break;
+            }
+        case 'ticket-monthly-open-close':
+            $conn_res = connect_dbnossa();
+            if (!$conn_res->success) {
+                echo json_encode(['status' => 500, 'msg' => $conn_res->msg]);
+            } else {
+                $db = $conn_res->conn;
+
+                $q = $db->query("SELECT DATE_FORMAT(CREATIONDATE, '%b-%Y')AS periode, 
+                        SUM(IF(STATUS='CLOSED',1,0))AS ticked_closed, COUNT(TICKETID)AS ticket_total
+                        FROM cnq.nossa_telkomsel WHERE TROUBLE_HEADLINE like '%TSEL_CNQ%' AND
+                        TK_REGION LIKE 'REG%' AND CREATIONDATE>SUBDATE(CURDATE(), INTERVAL 12 MONTH)
+                        GROUP BY periode ORDER BY periode");
+
+                $a = [];
+                while ($b = $q->fetch_assoc()) {
+                    $a[] = $b;
+                }
+                $q->free_result();
+                $db->close();
+
+                echo json_encode(['status' => 200, 'data' => $a]);
+                break;
+            }
+        case 'ticket-quality-still-open':
+            $data = [];
+            $cr = connect_dbnossa();
+            $db = $cr->conn;
+
+            $q = $db->query("SELECT TK_REGION AS treg, COUNT(*)AS count
+                    FROM cnq.nossa_telkomsel
+                    where STATUS<>'CLOSED' AND TK_REGION LIKE 'REG%'
+                    AND DATE_FORMAT(CREATIONDATE, '%Y-%m')>DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 MONTH), '%Y-%m')
+                    GROUP BY 1 order by 1");
+
+            while ($b = $q->fetch_assoc()) {
+                $data[] = $b;
+            }
+            $q->free_result();
+            $db->close();
+
+            echo json_encode(['status' => 200, 'data' => $data]);
+            break;
+
+
+
+        case 'ticket-before-after':
+            // dummy data
+            $data = array('before' => 76, 'after' => 28);
+            echo json_encode(['status' => 200, 'data' => $data]);
+            exit(0);
+
+            $data = [];
+            $cr = connect_dbnossa();
+            $db = $cr->conn;
+
+            $q = $db->query("SELECT TK_REGION AS treg, COUNT(*)AS count
+                        FROM cnq.nossa_telkomsel
+                        where STATUS<>'CLOSED' AND TK_REGION LIKE 'REG%'
+                        AND DATE_FORMAT(CREATIONDATE, '%Y-%m')>DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 MONTH), '%Y-%m')
+                        GROUP BY 1 order by 1");
+
+            while ($b = $q->fetch_assoc()) {
+                $data[] = $b;
+            }
+            $q->free_result();
+            $db->close();
+
+            echo json_encode(['status' => 200, 'data' => $data]);
+            break;
+
+
+
+        case 'ticket-avgttr-monthly':
+            $conn_res = connect_dbnossa();
+            if (!$conn_res->success) {
+                echo json_encode(['status' => 500, 'msg' => $conn_res->msg]);
+            } else {
+                $db = $conn_res->conn;
+
+                $q = $db->query("SELECT DATE_FORMAT(CREATIONDATE, '%b-%Y')AS periode, AVG(TTR_CUSTOMER_JAM)AS avg_ttr
+				FROM cnq.nossa_telkomsel WHERE TROUBLE_HEADLINE like '%TSEL_CNQ%' AND
+				TK_REGION LIKE 'REG%' AND date(CREATIONDATE)>='$from' and date(CREATIONDATE) <= '$to' 
+				GROUP BY 1 ORDER BY 1");
+
+                $a = [];
+                while ($b = $q->fetch_assoc()) {
+                    $a[] = $b;
+                }
+                $q->free_result();
+                $db->close();
+
+                echo json_encode(['status' => 200, 'data' => $a]);
+                break;
+            }
+
+        case 'ticket-by-workgroup':
+            $conn_res = connect_dbnossa();
+            if (!$conn_res->success) {
+                echo json_encode(['status' => 500, 'msg' => $conn_res->msg]);
+            } else {
+                $db = $conn_res->conn;
+
+                $q = $db->query("SELECT COUNT(*)AS ticket_total, tk_region AS treg, ownergroup, AVG(ttr_customer_jam)AS avg_ttr FROM
+                cnq.nossa_telkomsel where TROUBLE_HEADLINE like '%TSEL_CNQ%'
+                AND date(CREATIONDATE)>='$from' and date(CREATIONDATE) <= '$to' 
+                GROUP BY treg, ownergroup");
+
+                $a = [];
+                while ($b = $q->fetch_assoc()) {
+                    $a[] = $b;
+                }
+                $q->free_result();
+                $db->close();
+
+                echo json_encode(['status' => 200, 'data' => $a]);
+                break;
+            }
+        case 'ticket-total-rca':
+            $cr = connect_dbnossa();
+            $db = $cr->conn;
+            $q = "SELECT product, rca, COUNT(*)AS t FROM site_list4
+                    WHERE rca IS NOT NULL AND yearweek=(SELECT MAX(yearweek) FROM site_list4)
+                    GROUP BY product, rca";
+
+            $q = $db->query($q);
+
+            $a = [];
+            while ($b = $q->fetch_assoc()) {
+                $a[] = $b;
+            }
+            $q->free_result();
+            $db->close();
+
+            echo json_encode(['status' => 200, 'data' => $a]);
+
+            break;
+
+        case 'ticket-total-rfo':
+            $cr = connect_dbnossa();
+            $db = $cr->conn;
+
+            $q = "SELECT product, grouping_rfo, COUNT(*)AS t FROM site_list4
+                    WHERE grouping_rfo IS NOT NULL AND yearweek=(SELECT MAX(yearweek) FROM site_list4)
+                    GROUP BY product, grouping_rfo";
+
+            $q = $db->query($q);
+
+            $a = [];
+            while ($b = $q->fetch_assoc()) {
+                $a[] = $b;
+            }
+            $q->free_result();
+            $db->close();
+
+            echo json_encode(['status' => 200, 'data' => $a]);
+
+            break;
+
+        case 'ticket-open-greater-sla-treg':
+            $conn_res = connect_dbnossa();
+            if (!$conn_res->success) {
+                echo json_encode(['status' => 500, 'msg' => $conn_res->msg]);
+            } else {
+                $db = $conn_res->conn;
+
+                $q = $db->query("SELECT TK_REGION AS treg, COUNT(*)AS ticket_open48
+                FROM cnq.nossa_telkomsel where TROUBLE_HEADLINE like '%TSEL_CNQ%'
+                AND TTR_CUSTOMER_JAM>48 AND STATUS<>'CLOSED' AND TK_REGION LIKE 'REG%'
+                AND DATE_FORMAT(CREATIONDATE, '%Y-%m')>DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 MONTH), '%Y-%m')
+                GROUP BY treg");
+
+                $a = [];
+                while ($b = $q->fetch_assoc()) {
+                    $a[] = $b;
+                }
+                $q->free_result();
+                $db->close();
+
+                echo json_encode(['status' => 200, 'data' => $a]);
+                break;
+            }
+        case 'avg-ticket-monthly':
+            $conn_res = connect_dbnossa();
+            if (!$conn_res->success) {
+                echo json_encode(['status' => 500, 'msg' => $conn_res->msg]);
+            } else {
+                $db = $conn_res->conn;
+
+                //mttr
+                $q = $db->query("SELECT AVG(TTR_CUSTOMER_JAM)AS avg_mttr FROM cnq.nossa_telkomsel WHERE
+				TROUBLE_HEADLINE like '%TSEL_CNQ%' AND
+				DATE_FORMAT(CREATIONDATE, '%b-%Y')>DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 12 MONTH), '%b-%Y')");
+
+                $a = '';
+                if ($row = $q->fetch_assoc()) {
+                    $a = $row;
+                }
+                $q->free_result();
+
+                //ttr48
+                $q = $db->query("SELECT (100*a.ttr48/total_ttr)AS ticketsla FROM(SELECT SUM(IF(TTR_CUSTOMER_JAM>48,1,0))AS ttr48, COUNT(TTR_CUSTOMER_JAM)AS total_ttr
+				FROM cnq.nossa_telkomsel where TROUBLE_HEADLINE like '%TSEL_CNQ%'
+				AND DATE_FORMAT(CREATIONDATE, '%Y-%m')>DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 12 MONTH), '%Y-%m'))a");
+
+                $b = '';
+                if ($row = $q->fetch_assoc()) {
+                    $b = $row;
+                }
+                $q->free_result();
+
+                $q = $db->query("SELECT SUM(IF(TTR_CUSTOMER_JAM<=48 AND STATUS='CLOSED',1,0))AS ttr_closed, COUNT(TTR_CUSTOMER_JAM)AS jumlah_ttr
+				FROM cnq.nossa_telkomsel where TROUBLE_HEADLINE like '%TSEL_CNQ%'
+				AND DATE_FORMAT(CREATIONDATE, '%Y-%m')>DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 12 MONTH), '%Y-%m')");
+
+                $c = '';
+                if ($row = $q->fetch_assoc()) {
+                    $c = $row;
+                }
+                $q->free_result();
+
+                $db->close();
+
+                echo json_encode(['status' => 200, 'data' => [$a, $b, $c]]);
+                break;
+            }
+
+
+
+        case 'access-performance-today-this-week':
+            $today = date('Y-m-d');
+            $data = array(
+                'packetloss_val' => rand(0, 1234),
+                'packetloss_inc_dec' => rand(0, 3),
+                'site_not_clear_by_sla' => rand(0, 1234),
+                'site_not_clear_by_baseline' => rand(0, 1234),
+                'site_not_clear_by_citylose' => rand(0, 1234),
+                'site_not_clear_by_sla_inc_dec' => rand(0, 3),
+                'site_not_clear_by_baseline_inc_dec' => rand(0, 3),
+                'site_not_clear_by_citylose_inc_dec' => rand(0, 3),
+            );
+            if (!$isdev) {
+                echo json_encode(['status' => 200, 'data' => $data]);
+                exit(0);
+            }
+
+            $data = array(
+                'packetloss_val' => 0,
+                'packetloss_inc_dec' => 0,
+                'site_not_clear_by_sla' => 0,
+                'site_not_clear_by_baseline' => 0,
+                'site_not_clear_by_citylose' => 0,
+                'site_not_clear_by_sla_inc_dec' => 0,
+                'site_not_clear_by_baseline_inc_dec' => 0,
+                'site_not_clear_by_citylose_inc_dec' => 0,
+            );
+            $cr = connect_dbtelkomtwamp();
+            $dbtw = $cr->conn;
+            $backInterval = isset($_GET['backinterval']) ? $_GET['backinterval'] : 2;
+            $currentDate = isset($_GET['date']) ? $_GET['date'] : $today;
+            $yearweek = date('oW', strtotime($currentDate));
+            $year = date('o', strtotime($currentDate));
+            $week = date('W', strtotime($currentDate));
+
+
+            $q = "select COUNT(*) cnt from ci_twamp.twamp_4g_weekly
+                WHeRE (distribution_pl='>5%' OR distribution_pl='1-5%') and tahun=year('$currentDate') and week=weekofyear('$currentDate')";
+
+            $q = $dbtw->query($q);
+            while ($b = $q->fetch_assoc()) {
+                $data['site_not_clear_by_sla'] = $b['cnt'];
+            }
+            $q->free_result();
+
+            $cr = connect_dbtutela();
+            $dbns = $cr->conn;
+            $kabs = [];
+            $q = "select kabupaten from report.weekly_report_detail_city
+                    where kpi = 'latency' and benchmark = 'lose' and yearweek = '$yearweek' order by yearweek";
+
+            $result = pg_query($dbns, $q);
+            while ($b = pg_fetch_assoc($result)) {
+                $kabs[] = $b['kabupaten'];
+            }
+            $strKabs = "'" . implode("','", $kabs) . "'";
+            pg_free_result($result);
+            pg_close($dbns);
+
+            $q = "select count(distinct site_id) total_site from ci_twamp.twamp_4g_weekly 
+                    WHeRE (distribution_pl='>5%' OR distribution_pl='1-5%' OR distribution_pl='0.1-1%')
+                    and tahun=$year and week=$week and kabupaten in ($strKabs)";
+            $q = $dbtw->query($q);
+            while ($b = $q->fetch_assoc()) {
+                $data['site_not_clear_by_citylose'] = $b['total_site'];
+            }
+
+            $q->free_result();
+            $dbtw->close();
+
+
+
+            echo json_encode(['status' => 200, 'data' => $data]);
+
+            break;
+        case 'access-performance-site-not-clear-treg':
+            $today = date('Y-m-d');
+            $data = [];
+            if (!$isdev) {
+                $periodes = generateMonthlyPeriode(date('Y-m-d'));
+                $tregs = getTregList();
+                $i = 0;
+                foreach ($periodes as $p) {
+                    foreach ($tregs as $t) {
+                        $data[$i]['periode'] = $p;
+                        $data[$i]['treg'] = $t['treg'];
+                        $data[$i]['count'] = rand(1500, 2000);
+                        $i++;
+                    }
+                }
+
+                echo json_encode(['status' => 200, 'data' => $data]);
+                exit(0);
+            }
+
+
+            $cr = connect_dbtelkomtwamp();
+            $dbtw = $cr->conn;
+            $backInterval = isset($_GET['backinterval']) ? $_GET['backinterval'] : 2;
+            $currentDate = isset($_GET['date']) ? $_GET['date'] : $today;
+            $yearweek = date('oW', strtotime($currentDate));
+            $year = date('o', strtotime($currentDate));
+            $week = date('W', strtotime($currentDate));
+
+
+            $sql = "select region,count(distinct site_id) count from ci_twamp.twamp_4g_weekly WHeRE (distribution_pl='>5%' OR distribution_pl='1-5%' OR distribution_pl='0.1-1%') and tahun=year('$currentDate') and week=weekofyear('$currentDate') group by 1 order by 1";
+
+            $q = $dbtw->query($sql);
+            while ($b = $q->fetch_assoc()) {
+                $data[] = $b;
+            }
+            $q->free_result();
+            $dbtw->close();
+
+
+
+            echo json_encode(['status' => 200, 'data' => $data, 'q' => $sql]);
+
+            break;
+        case 'access-performance-site-not-clear-region':
+            $today = date('Y-m-d');
+            $data = [];
+            if (!$isdev) {
+                $periodes = generateMonthlyPeriode(date('Y-m-d'));
+                $tregs = getRegionList();
+                $i = 0;
+                foreach ($periodes as $p) {
+                    foreach ($tregs as $t) {
+                        $data[$i]['periode'] = $p;
+                        $data[$i]['region_tsel'] = $t['region_tsel'];
+                        $data[$i]['count'] = rand(1500, 2000);
+                        $i++;
+                    }
+                }
+
+                echo json_encode(['status' => 200, 'data' => $data]);
+                exit(0);
+            }
+
+
+            $cr = connect_dbtelkomtwamp();
+            $dbtw = $cr->conn;
+            $backInterval = isset($_GET['backinterval']) ? $_GET['backinterval'] : 2;
+            $currentDate = isset($_GET['date']) ? $_GET['date'] : $today;
+            $yearweek = date('oW', strtotime($currentDate));
+            $year = date('o', strtotime($currentDate));
+            $week = date('W', strtotime($currentDate));
+
+
+            $q = "select select concat(id_region_tsel,'-',region_tsel) region_tsel,count(distinct site_id) count from ci_twamp.twamp_4g_weekly
+                WHeRE (distribution_pl='>5%' OR distribution_pl='1-5%' OR distribution_pl='0.1-1%') 
+                and tahun=year('$currentDate') and week=weekofyear('$currentDate') group by 1 order by id_region_tsel";
+
+            $q = $dbtw->query($q);
+            while ($b = $q->fetch_assoc()) {
+                $data[] = $b;
+            }
+            $q->free_result();
+            $dbtw->close();
+
+
+
+            echo json_encode(['status' => 200, 'data' => $data]);
+
+            break;
+        case 'access-performance-distribution-pl':
+            $data = [];
+            $cr = connect_dbtelkomtwamp();
+            $dbtw = $cr->conn;
+
+            $sql = "select region,
+            sum(case when distribution_pl='>5%' then 1 else 0 end) pl_5,
+            sum(case when distribution_pl='1-5%' then 1 else 0 end) pl_15,
+            sum(case when distribution_pl='0.1-1%' then 1 else 0 end) pl_011,
+            sum(case when distribution_pl='0-0.1%' then 1 else 0 end) pl_01 
+            from ci_twamp.twamp_4g_weekly where tanggal >= '$from' and tanggal <= '$to' group by 1 order by 1";
+            $q = $dbtw->query($sql);
+
+            while ($b = $q->fetch_assoc()) {
+                $data[] = $b;
+            }
+            $q->free_result();
+            $dbtw->close();
+
+            echo json_encode(['status' => 200, 'data' => $data, 'q' => $sql]);
+
+            break;
+
+        case 'access-performance-sites-capacity-treg':
+            $data = [];
+            $cr = connect_dbnossa();
+            $dbns = $cr->conn;
+            $sql = "SELECT a1.treg,
+                    COUNT(a1.capacity)       AS cap,
+                    COUNT(a1.isr)            AS isr,
+                    COUNT(a1.gangguan)       AS gang,
+                    COUNT(a1.tsel)           AS tsel,
+                    COUNT(a1.unspec_quality) AS unspec
+            FROM (SELECT upper(a.treg) treg, a.kabupaten, b.*
+                FROM (SELECT site_id, treg, kabupaten
+                        FROM qosmo.site_list4
+                        WHERE yearweek >= weekofyear('$from') and yearweek <= weekofyear('$to')) a
+                            INNER JOIN
+                        (SELECT yearweek, site_id, capacity, isr, gangguan, tsel, unspec_quality
+                        FROM qosmo.site_list4
+                        WHERE yearweek >= weekofyear('$from') and yearweek <= weekofyear('$to')) b 
+                        ON a.site_id = b.site_id) a1
+            GROUP BY 1";
+            $q = $dbns->query($sql);
+
+            while ($b = $q->fetch_assoc()) {
+                $data[] = $b;
+            }
+            $q->free_result();
+            $dbtw->close();
+
+
+            $cr = connect_dbtelkomtwamp();
+            $dbtw = $cr->conn;
+
+            $sql = "select region,replace(region,'-','') region2,total_sites,site_not_clear,(1-(site_not_clear/total_sites))*100 pct_site_clear,((1-(site_not_clear/total_sites))*100 / 99.45)*100 ach from (
+                select region,count(distinct site_id) total_sites,sum(
+                case when (distribution_pl='>5%' OR distribution_pl='1-5%' OR distribution_pl='0.1-1%') then 1 else 0 end
+                ) site_not_clear
+                from ci_twamp.twamp_4g_weekly
+                WHeRE tanggal >= '$from' and tanggal <= '$to' 
+                group by 1 order by 1
+            ) xx";
+
+
+            $q = $dbtw->query($sql);
+
+            while ($b = $q->fetch_assoc()) {
+                $data[] = $b;
+            }
+            $q->free_result();
+            $dbtw->close();
+
+            echo json_encode(['status' => 200, 'data' => $data, 'q' => $sql]);
+
+            break;
+
+        case 'cdn-pengukuran-pe':
+            $today = date('Y-m-d');
+            $data = [];
+
+            $cr = connect_telkomoca();
+            $dbtw = $cr->conn;
+            $currentDate = isset($_GET['date']) ? $_GET['date'] : $today;
+            $yearweek = date('oW', strtotime($currentDate));
+            $year = date('o', strtotime($currentDate));
+            $week = date('W', strtotime($currentDate));
+
+
+            $q = "select a.category, a.ip_address, a.avg, a.jitter, a.packetloss, b.pe_transit
+            from ping_automate.latency_oca a
+            INNER JOIN ping_automate.ip_ping_oca b
+            ON a.ip_address=b.ip_ebr
+            where a.category!='TRACERT_PARSING' AND a.category!='TRACERT'
+            and date_ >= '$from' and date_ <= '$to' order by category limit 20";
+
+            $q = $dbtw->query($q);
+            while ($b = $q->fetch_assoc()) {
+                $data[] = $b;
+            }
+
+            $q->free_result();
+            $dbtw->close();
+
+            echo json_encode(['status' => 200, 'data' => $data]);
 
             break;
         default:
@@ -2089,4 +2803,50 @@ function connect_telkomoca()
         $res->msg = $db->connect_error;
     }
     return $res;
+}
+
+function generateMonthlyPeriode($endDate, $loopCount = 12, $outputFormat = 'M-Y')
+{
+    $periodes = array();
+    for ($m = 0; $m <= $loopCount; $m++) {
+        $key = date("Y-m-01", strtotime("-" . $m . " months", strtotime($endDate)));
+        $blth = date($outputFormat, strtotime($key));
+        $periodes[$key] = $blth;
+    }
+
+    return $periodes;
+}
+function getTregList()
+{
+    $cr = connect_dbtelkomtwamp();
+    $dbtw = $cr->conn;
+    $q = "select distinct treg from master.region order by 1";
+    $q = $dbtw->query($q);
+    $res = [];
+    while ($b = $q->fetch_assoc()) {
+        $res[] = $b;
+    }
+    $q->free_result();
+    $dbtw->close();
+    return $res;
+}
+function getRegionList()
+{
+    $cr = connect_dbtelkomtwamp();
+    $dbtw = $cr->conn;
+    $q = "select distinct concat(id_region_tsel,'-',region_tsel) region_tsel from master.region order by id_region_tsel";
+    $q = $dbtw->query($q);
+    $res = [];
+    while ($b = $q->fetch_assoc()) {
+        $res[] = $b;
+    }
+    $q->free_result();
+    $dbtw->close();
+    return $res;
+}
+function print_out($arr, $die = 1)
+{
+    header('Content-Type: text/html;');
+    echo '<pre>' . print_r($arr, 1) . '</pre>';
+    if ($die) die();
 }

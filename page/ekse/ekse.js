@@ -746,9 +746,12 @@ const executive1 = a => {
 	})(a)
 	
 	
+	m.ekse.dataChart2_trend_latency = {}
 	//isi data
 	fetch("api.php?cmd=overview-trend-latency").then((a) => a.json()).then((b) => {
 	//fetch("data/overview-trend-latency.json").then((a) => a.json()).then((b) => {
+		console.log('cmd=overview-trend-latency')
+		console.log(b);
 		(a => { a.parentElement.removeChild(a) })(document.getElementById('loadingEkseCard2'))
 		m.chart1.data.labels = b.data.map(a=>bulan[parseInt(a.periode.slice(5,7))-1]+' '+a.periode.slice(2,4))
 		m.chart1.data.datasets[1].data = b.data.map(a=>a.core?parseFloat(a.core.split('|')[1])||null:null)
@@ -756,8 +759,19 @@ const executive1 = a => {
 		m.chart1.data.datasets[0].data = b.data.map(a=>a.ce?parseFloat(a.ce.split('|')[1])||null:null)
 		m.chart1.update()
 	})
+
+	fetch("api.php?cmd=overview-trend-latency-weekly").then((a) => a.json()).then((b) => {
+		//m.ekse.dataChart2_trend_latency.weekly = {
+		//	labels = a.data.map(a=>a.periode),
+		//	datasets = [
+				
+		//	]
+		//} 
+		console.log(b)
+		//http://10.62.175.157/qosmo2/api.php?cmd=overview-trend-latency-weekly
+	})
 	
-	
+
 	fetch("api.php?cmd=city-lose-performance-line").then((a) => a.json()).then((b) => {
 			
 		b.data.latency.slice(-5).forEach((lat) => {

@@ -5,6 +5,7 @@ m = {
 	p3: {},
 	p4: {},
 	sla: {},
+	ticket: {},
 }
 
 const bulan = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
