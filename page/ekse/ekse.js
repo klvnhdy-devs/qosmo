@@ -179,10 +179,18 @@ const executive1 = a => {
 			}
 		});
 		
+		m.ekse.chart1GantiData = a => {
+			m.chart1.data.labels = a.labels
+			m.chart1.data.datasets[0].data = a.datasets[0]
+			m.chart1.data.datasets[1].data = a.datasets[1]
+			m.chart1.data.datasets[2].data = a.datasets[2]
+			m.chart1.update()
+		}
 		//slider
 		(a => {
 			
 			el({a:'input', b:a, d:{type:'checkbox', checked:true, class:'slider-checkbox', style:'margin-top:-1.5vh'}, e:{change:a=>{
+				m.ekse.chart1GantiData(a.target.checked ? m.ekse.dataChart2_trend_latency.monthly : m.ekse.dataChart2_trend_latency.weekly)
 				//m.ekse.chart2GantiData(a.target.checked ? 'cti' : '4g')
 			}}})
 			el({a:'div', b:el({a:'div', b:el({a:'div', b:a, d:{class:'slider1'}}), c:'Weekly'}).parentElement, c:'Monthly'})
@@ -750,25 +758,27 @@ const executive1 = a => {
 	//isi data
 	fetch("api.php?cmd=overview-trend-latency").then((a) => a.json()).then((b) => {
 	//fetch("data/overview-trend-latency.json").then((a) => a.json()).then((b) => {
-		console.log('cmd=overview-trend-latency')
-		console.log(b);
 		(a => { a.parentElement.removeChild(a) })(document.getElementById('loadingEkseCard2'))
-		m.chart1.data.labels = b.data.map(a=>bulan[parseInt(a.periode.slice(5,7))-1]+' '+a.periode.slice(2,4))
-		m.chart1.data.datasets[1].data = b.data.map(a=>a.core?parseFloat(a.core.split('|')[1])||null:null)
-		m.chart1.data.datasets[2].data = b.data.map(a=>a.access?parseFloat(a.access.split('|')[1])||null:null)
-		m.chart1.data.datasets[0].data = b.data.map(a=>a.ce?parseFloat(a.ce.split('|')[1])||null:null)
-		m.chart1.update()
+		m.ekse.dataChart2_trend_latency.monthly = {
+			labels: b.data.map(a=>bulan[parseInt(a.periode.slice(5,7))-1]+' '+a.periode.slice(2,4)),
+			datasets : [
+				b.data.map(a=>a.ce?parseFloat(a.ce.split('|')[1])||null:null),
+				b.data.map(a=>a.core?parseFloat(a.core.split('|')[1])||null:null),
+				b.data.map(a=>a.access?parseFloat(a.access.split('|')[1])||null:null)
+			]
+		}
+		m.ekse.chart1GantiData(m.ekse.dataChart2_trend_latency.monthly)
 	})
 
 	fetch("api.php?cmd=overview-trend-latency-weekly").then((a) => a.json()).then((b) => {
-		//m.ekse.dataChart2_trend_latency.weekly = {
-		//	labels = a.data.map(a=>a.periode),
-		//	datasets = [
-				
-		//	]
-		//} 
-		console.log(b)
-		//http://10.62.175.157/qosmo2/api.php?cmd=overview-trend-latency-weekly
+		m.ekse.dataChart2_trend_latency.weekly = {
+			labels: b.data.map(a=>a.periode),
+			datasets: [
+				b.data.map(a=>a.ce?parseFloat(a.ce.split('|')[1])||null:null),
+				b.data.map(a=>a.core?parseFloat(a.core.split('|')[1])||null:null),
+				b.data.map(a=>a.access?parseFloat(a.access.split('|')[1])||null:null)
+			]
+		}
 	})
 	
 
