@@ -191,7 +191,6 @@ const executive1 = a => {
 			
 			el({a:'input', b:a, d:{type:'checkbox', checked:true, class:'slider-checkbox', style:'margin-top:-1.5vh'}, e:{change:a=>{
 				m.ekse.chart1GantiData(a.target.checked ? m.ekse.dataChart2_trend_latency.monthly : m.ekse.dataChart2_trend_latency.weekly)
-				//m.ekse.chart2GantiData(a.target.checked ? 'cti' : '4g')
 			}}})
 			el({a:'div', b:el({a:'div', b:el({a:'div', b:a, d:{class:'slider1'}}), c:'Weekly'}).parentElement, c:'Monthly'})
 			
@@ -887,12 +886,12 @@ const executive1 = a => {
 		['youtube', 'facebook', 'netflix', 'tiktok']. forEach((a,f) => {
 			(a => {
 				const b = parseFloat((a.find(a=>a.type=='global')||{avg_time:100}).avg_time)
-				m.chart3.data.datasets[0].data[f] = b// - 100
-				//m.chart3.data.datasets[1].data[f] = (b - 100) - 100
+				m.chart3.data.datasets[0].data[f] = b - 100
+				m.chart3.data.datasets[1].data[f] = -b
 				
 				const c = parseFloat((a.find(a=>a.type=='cdn')||{avg_time:100}).avg_time)
 				m.chart3.data.datasets[2].data[f] = c
-				//m.chart3.data.datasets[3].data[f] = 100 - c
+				m.chart3.data.datasets[3].data[f] = 100 - c
 			})(b.data.filter(b=>b.category==a));
 		})
 		m.chart3.update()
