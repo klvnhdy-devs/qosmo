@@ -467,7 +467,7 @@ const executive1 = a => {
 					backgroundColor: '#477F9F',
 					borderColor: '#477F9F',
 				},{
-					data: [-100, -100, -100, -100, -100],
+					data: [null, null, null, null, null],
 					fill: false,
 					backgroundColor: '#D9D9D9',
 					borderColor: '#D9D9D9',
@@ -479,7 +479,7 @@ const executive1 = a => {
 					backgroundColor: '#B28E65',
 					borderColor: '#B28E65',
 				},{
-					data: [100, 100, 100, 100, 100],
+					data: [null, null, null, null, null],
 					fill: false,
 					backgroundColor: '#D9D9D9',
 					borderColor: '#D9D9D9',
@@ -490,6 +490,13 @@ const executive1 = a => {
 				indexAxis: 'y',
 				responsive: true,
 				plugins: {
+					tooltip: {
+						callbacks: {
+							label: a => {
+								return Math.abs(m.chart3.data.datasets[a.datasetIndex>1?2:0].data[a.dataIndex])
+							}
+						}
+					},
 					datalabels: {
 						color: 'rgba(0,0,0,0)',
 						//formatter: function (value) { return Math.round(value) + '%' },
@@ -515,18 +522,10 @@ const executive1 = a => {
 						ticks: { callback: value => Math.abs(value) }
 					}
 				},
-				/*
-				tooltips: {
-					callbacks: {
-						label: (tooltipItem, data) => {
-							console.log('a')
-							const ds = data.datasets[tooltipItem.datasetIndex];
-							return ds.label + ': ' + Math.abs( ds.data[tooltipItem.index]);
-						}
-					}
-				},*/
+				
 			}
 		});
+		
 	})(a);
 	
 	//card6
@@ -815,7 +814,7 @@ const executive1 = a => {
 		const labelCti = Object.keys(b.data.cti).flatMap(a=>b.data.cti[a].map(a=>a.periode)).reduce((a,b)=>a.find(a=>a==b)?a:[...a,b],[]).sort()
 		m.ekse.card3Data = {
 			'4g' : {
-				labels : label4G.map(a=>bulan[parseInt(a.periode.slice(5,7))-1]+' '+a.periode.slice(2,4)),
+				labels : label4G.map(a=>bulan[parseInt(a.slice(5,7))-1]+' '+a.slice(2,4)),
 				datasets: [
 					label4G.map(a=>(b.data['4g'].pl.find(b=>b.periode==a)||{realisasi:null}).realisasi),
 					label4G.map(a=>(b.data['4g'].lat.find(b=>b.periode==a)||{realisasi:null}).realisasi),
@@ -823,7 +822,7 @@ const executive1 = a => {
 				]
 			},
 			cti: {
-				labels : labelCti.map(a=>bulan[parseInt(a.periode.slice(5,7))-1]+' '+a.periode.slice(2,4)),
+				labels : labelCti.map(a=>bulan[parseInt(a.slice(5,7))-1]+' '+a.slice(2,4)),
 				datasets: [
 					labelCti.map(a=>(b.data.cti.pl.find(b=>b.periode==a)||{realisasi:null}).realisasi),
 					labelCti.map(a=>(b.data.cti.lat.find(b=>b.periode==a)||{realisasi:null}).realisasi),
@@ -881,17 +880,18 @@ const executive1 = a => {
 
 	
 	fetch("api.php?cmd=global-vs-cdn-ex").then((a) => a.json()).then((b) => {
-		(a => { a.parentElement.removeChild(a) })(document.getElementById('loadingEkseCdn'));
+		(a => { a.parentElement.removeChild(a) })(document.getElementById('loadingEkseCdn'))
 		
+		const d = b.data.reduce((a,b)=>Math.max(a,Math.ceil(parseFloat(b.avg_time||0))),0);
 		['youtube', 'facebook', 'netflix', 'tiktok']. forEach((a,f) => {
 			(a => {
-				const b = parseFloat((a.find(a=>a.type=='global')||{avg_time:100}).avg_time)
-				m.chart3.data.datasets[0].data[f] = b - 100
-				m.chart3.data.datasets[1].data[f] = -b
+				const b = parseFloat((a.find(a=>a.type=='global')||{avg_time:0}).avg_time)
+				m.chart3.data.datasets[0].data[f] = -b
+				m.chart3.data.datasets[1].data[f] = b - d
 				
-				const c = parseFloat((a.find(a=>a.type=='cdn')||{avg_time:100}).avg_time)
+				const c = parseFloat((a.find(a=>a.type=='cdn')||{avg_time:0}).avg_time)
 				m.chart3.data.datasets[2].data[f] = c
-				m.chart3.data.datasets[3].data[f] = 100 - c
+				m.chart3.data.datasets[3].data[f] = d - c
 			})(b.data.filter(b=>b.category==a));
 		})
 		m.chart3.update()
