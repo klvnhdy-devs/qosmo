@@ -21,7 +21,7 @@ const ticket1card4 = a => {
 	el({ a: "div", b: a, c: "Resolved Ticket with SLA", d:{class:"title"} });
 	m.ticket.Resolved = el({ a: "div", b: a, c: "", d:{class:"titleBody"} });
 }
-
+/*
 fetch("https://10.62.175.157/qosmo2/tmp.php?cmd=avg-ticket-monthly").then((a) => a.json()).then((b) => {
 	
 	m.ticket.mttr.innerHTML = b.data[0]['avg_mttr'].toString().substring(0,5);
@@ -30,4 +30,4 @@ fetch("https://10.62.175.157/qosmo2/tmp.php?cmd=avg-ticket-monthly").then((a) =>
 	m.ticket.Resolved.innerHTML = (( b.data[2]['ttr_closed'] / b.data[2]['jumlah_ttr'] ) * 100 ).toString().substring(0,5) + "%";
 
 })
-
+*/
