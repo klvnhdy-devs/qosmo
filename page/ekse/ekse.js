@@ -601,7 +601,7 @@ const executive1 = a => {
 				},
 				options: {
 					plugins: {
-						title: { text: 'Packetloss' },
+						title: { display: true, text: 'Packetloss', font: { size:9, } },
 						datalabels: { color: 'rgba(0,0,0,0)', },
 						legend: { display: false, }
 					},
@@ -639,7 +639,7 @@ const executive1 = a => {
 				data: {
 					labels: [],
 					datasets: [{
-						label: 'Jitter',
+						label: 'Latency',
 						data: [],
 						fill: false,
 						backgroundColor: '#477F9F',
@@ -651,7 +651,7 @@ const executive1 = a => {
 				},
 				options: {
 					plugins: {
-						title: { text: 'Latency' },
+						title: { display: true, text: 'Latency', font: { size:9, } },
 						datalabels: { color: 'rgba(0,0,0,0)', },
 						legend: { display: false, }
 					},
@@ -689,7 +689,7 @@ const executive1 = a => {
 				data: {
 					labels: [],
 					datasets: [{
-						label: 'Paket Lost',
+						label: 'Jitter',
 						data: [],
 						fill: false,
 						backgroundColor: '#477F9F',
@@ -701,7 +701,7 @@ const executive1 = a => {
 				},
 				options: {
 					plugins: {
-						title: { text: 'Jitter' },
+						title: { display: true, text: 'Jitter', font: { size:9, } },
 						datalabels: { color: 'rgba(0,0,0,0)', },
 						legend: { display: false, }
 					},
@@ -736,13 +736,6 @@ const executive1 = a => {
 			}
 		} 
 
-		/*
-		(a => {
-			el({a:'div', b:a, c:'Packetloss'})
-			el({a:'div', b:a, c:'Latency'})
-			el({a:'div', b:a, c:'Jitter'})
-		})(el({a:'div', b:a, d:{style:'position:absolute; margin-top:-35vh; display:flex; flex-direction:column; gap:3px;'} }))
-		*/
 		(a => {
 			el({a:'option', b:a, c:'Packetloss', d:{value:'pl'} })
 			el({a:'option', b:a, c:'Latency', d:{value:'latency'} })
@@ -805,7 +798,7 @@ const executive1 = a => {
 	fetch("api.php?cmd=city-lose-performance-donut").then((a) => a.json()).then((b) => {
 		(a => { a.parentElement.removeChild(a) })(document.getElementById('loadingEkseCity'))
 		m.ekse.card6Data = b.data
-		m.ekse.chart4GantiData('pl')
+		m.ekse.chart4GantiData('latency')
 	})
 
 	//fetch("api.php?cmd=sla-performance").then((a) => a.json()).then((b) => {
